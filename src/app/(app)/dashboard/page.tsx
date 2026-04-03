@@ -13,7 +13,7 @@ import { formatCurrency, getCurrentTaxYear } from "@/lib/utils";
 export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { taxReturn, taxYear, loading } = useTaxReturn();
+  const { taxReturn, taxYear, loading, error: firestoreError } = useTaxReturn();
   const [priorYears, setPriorYears] = useState<
     { year: number; status: string }[]
   >([]);
@@ -22,6 +22,8 @@ export default function DashboardPage() {
     if (user) {
       getAllTaxYears(user.uid).then((years) => {
         setPriorYears(years.filter((y) => y.year !== getCurrentTaxYear()));
+      }).catch(() => {
+        // Firestore not available — skip prior years
       });
     }
   }, [user]);
@@ -30,6 +32,23 @@ export default function DashboardPage() {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (firestoreError) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-900">Welcome</h2>
+          <p className="mt-1 text-sm text-gray-600">Tax Year {taxYear} Dashboard</p>
+        </div>
+        <Card variant="warning">
+          <p className="text-sm text-amber-800">{firestoreError}</p>
+          <p className="text-xs text-amber-600 mt-2">
+            Make sure Firestore is enabled in your Firebase project and your environment variables are configured correctly.
+          </p>
+        </Card>
       </div>
     );
   }

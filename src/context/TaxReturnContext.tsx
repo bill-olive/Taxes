@@ -19,6 +19,7 @@ import { getCurrentTaxYear } from "@/lib/utils";
 interface TaxReturnState {
   taxReturn: TaxReturn;
   loading: boolean;
+  error: string | null;
   taxYear: number;
   updateSection: <K extends keyof TaxReturn>(
     section: K,
@@ -30,6 +31,7 @@ interface TaxReturnState {
 const TaxReturnContext = createContext<TaxReturnState>({
   taxReturn: getDefaultTaxReturn(),
   loading: true,
+  error: null,
   taxYear: getCurrentTaxYear(),
   updateSection: async () => {},
   refreshReturn: async () => {},
@@ -39,14 +41,29 @@ export function TaxReturnProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [taxReturn, setTaxReturn] = useState<TaxReturn>(getDefaultTaxReturn());
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const taxYear = getCurrentTaxYear();
 
   const loadReturn = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    const data = await getOrCreateTaxReturn(user.uid, taxYear);
-    setTaxReturn(data);
-    setLoading(false);
+    setError(null);
+    try {
+      const data = await getOrCreateTaxReturn(user.uid, taxYear);
+      setTaxReturn(data);
+    } catch (err) {
+      console.error("Failed to load tax return from Firestore:", err);
+      setError(
+        "Could not connect to the database. You can still browse the app, but data won't be saved until the connection is restored."
+      );
+      // Use default data so the app is still usable
+      setTaxReturn(getDefaultTaxReturn());
+    } finally {
+      setLoading(false);
+    }
   }, [user, taxYear]);
 
   useEffect(() => {
@@ -56,15 +73,20 @@ export function TaxReturnProvider({ children }: { children: ReactNode }) {
   const updateSection = useCallback(
     async <K extends keyof TaxReturn>(section: K, data: TaxReturn[K]) => {
       if (!user) return;
-      await updateTaxReturnSection(user.uid, taxYear, section, data);
+      // Update local state immediately
       setTaxReturn((prev) => ({ ...prev, [section]: data }));
+      try {
+        await updateTaxReturnSection(user.uid, taxYear, section, data);
+      } catch (err) {
+        console.error("Failed to save to Firestore:", err);
+      }
     },
     [user, taxYear]
   );
 
   return (
     <TaxReturnContext.Provider
-      value={{ taxReturn, loading, taxYear, updateSection, refreshReturn: loadReturn }}
+      value={{ taxReturn, loading, error, taxYear, updateSection, refreshReturn: loadReturn }}
     >
       {children}
     </TaxReturnContext.Provider>
