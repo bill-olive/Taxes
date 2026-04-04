@@ -195,7 +195,7 @@ export default function W2IncomePage() {
     await updateSection("w2s", w2s);
     await updateSection("currentStep", 4);
     setSaving(false);
-    router.push("/intake/education");
+    router.push("/intake/investments");
   }
 
   return (

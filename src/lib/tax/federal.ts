@@ -28,7 +28,14 @@ function calculateBracketTax(
 }
 
 export function calculateFederalTax(input: TaxInput): FederalResult {
-  const grossIncome = input.wages;
+  // Capital loss deduction limited to $3,000 per year (IRC §1211)
+  const netCapitalGainLoss =
+    input.capitalGains - Math.min(input.capitalLosses, input.capitalGains + 3000);
+  const grossIncome =
+    input.wages +
+    (input.interestIncome || 0) +
+    (input.ordinaryDividends || 0) +
+    Math.max(0, netCapitalGainLoss);
   const adjustedGrossIncome = grossIncome;
 
   const deduction = calculateDeductions(input);
@@ -58,7 +65,19 @@ export function calculateFederalTax(input: TaxInput): FederalResult {
   const refundOrOwed = totalWithheld - taxAfterCredits;
 
   const lineItems: LineItem[] = [
-    { label: "Gross Income (Line 1)", value: grossIncome },
+    { label: "Wages (Line 1a)", value: input.wages },
+  ];
+  if (input.interestIncome > 0)
+    lineItems.push({ label: "Interest Income (Line 2b)", value: input.interestIncome });
+  if (input.ordinaryDividends > 0)
+    lineItems.push({ label: "Ordinary Dividends (Line 3b)", value: input.ordinaryDividends });
+  if (input.capitalGains > 0 || input.capitalLosses > 0)
+    lineItems.push({
+      label: `Capital ${netCapitalGainLoss >= 0 ? "Gain" : "Loss"} (Line 7)`,
+      value: netCapitalGainLoss,
+    });
+  lineItems.push(
+    { label: "Total Income (Line 9)", value: grossIncome },
     { label: "Adjusted Gross Income (Line 11)", value: adjustedGrossIncome },
     {
       label: `Deduction — ${deduction.recommendedMethod === "standard" ? "Standard" : "Itemized"}`,
@@ -90,8 +109,8 @@ export function calculateFederalTax(input: TaxInput): FederalResult {
     {
       label: refundOrOwed >= 0 ? "Federal Refund" : "Federal Owed",
       value: Math.abs(refundOrOwed),
-    },
-  ];
+    }
+  );
 
   return {
     grossIncome,

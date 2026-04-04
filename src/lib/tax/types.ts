@@ -3,6 +3,11 @@ import type { Citation } from "./constants";
 export interface TaxInput {
   filingStatus: import("@/types").FilingStatus;
   wages: number;
+  interestIncome: number;
+  ordinaryDividends: number;
+  qualifiedDividends: number;
+  capitalGains: number;
+  capitalLosses: number;
   federalWithheld: number;
   stateWithheld: number;
   tuitionPaid: number;

@@ -138,10 +138,52 @@ export function taxReturnToInput(
     0
   );
 
+  // Investment income
+  const inv = taxReturn.investmentIncome ?? {
+    form1099INTs: [],
+    form1099DIVs: [],
+    form1099Bs: [],
+  };
+  const interestIncome = inv.form1099INTs.reduce(
+    (s, f) => s + f.interestIncome,
+    0
+  );
+  const ordinaryDividends = inv.form1099DIVs.reduce(
+    (s, f) => s + f.ordinaryDividends,
+    0
+  );
+  const qualifiedDividends = inv.form1099DIVs.reduce(
+    (s, f) => s + f.qualifiedDividends,
+    0
+  );
+  const capitalGainFromDivs = inv.form1099DIVs.reduce(
+    (s, f) => s + f.totalCapitalGain,
+    0
+  );
+  const netBrokerGain = inv.form1099Bs.reduce(
+    (s, f) => s + (f.proceeds - f.costBasis),
+    0
+  );
+  const totalCapitalGains = Math.max(0, netBrokerGain + capitalGainFromDivs);
+  const totalCapitalLosses = Math.max(
+    0,
+    -(netBrokerGain + capitalGainFromDivs)
+  );
+  // Additional federal withholding from 1099s
+  const invFedWithheld =
+    inv.form1099INTs.reduce((s, f) => s + f.federalWithheld, 0) +
+    inv.form1099DIVs.reduce((s, f) => s + f.federalWithheld, 0) +
+    inv.form1099Bs.reduce((s, f) => s + f.federalWithheld, 0);
+
   return {
     filingStatus: taxReturn.filingStatus,
     wages: totalWages,
-    federalWithheld: totalFedWithheld,
+    interestIncome,
+    ordinaryDividends,
+    qualifiedDividends,
+    capitalGains: totalCapitalGains,
+    capitalLosses: totalCapitalLosses,
+    federalWithheld: totalFedWithheld + invFedWithheld,
     stateWithheld: totalStateWithheld,
     tuitionPaid: taxReturn.education.tuitionPaid,
     isFullTimeStudent: taxReturn.education.isFullTimeStudent,

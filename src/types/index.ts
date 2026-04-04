@@ -65,6 +65,48 @@ export interface W2Entry {
   localityName: string;
 }
 
+// 1099-INT: Interest income from banks/CDs
+export interface Form1099INT {
+  payerName: string;
+  payerEIN: string;
+  interestIncome: number;        // Box 1
+  earlyWithdrawalPenalty: number; // Box 2
+  federalWithheld: number;       // Box 4
+  taxExemptInterest: number;     // Box 8
+}
+
+// 1099-DIV: Dividend income from stocks/mutual funds
+export interface Form1099DIV {
+  payerName: string;
+  payerEIN: string;
+  ordinaryDividends: number;     // Box 1a
+  qualifiedDividends: number;    // Box 1b
+  totalCapitalGain: number;      // Box 2a
+  section1250Gain: number;       // Box 2b — unrecaptured §1250 gain
+  federalWithheld: number;       // Box 4
+  foreignTaxPaid: number;        // Box 7
+  exemptInterestDividends: number; // Box 12
+}
+
+// 1099-B: Proceeds from broker transactions (stocks, crypto, etc.)
+export interface Form1099B {
+  brokerName: string;
+  description: string;           // e.g., "100 shares AAPL"
+  dateAcquired: string;
+  dateSold: string;
+  proceeds: number;              // Box 1d
+  costBasis: number;             // Box 1e
+  gainOrLoss: number;            // computed
+  isShortTerm: boolean;          // held < 1 year
+  federalWithheld: number;       // Box 4
+}
+
+export interface InvestmentIncome {
+  form1099INTs: Form1099INT[];
+  form1099DIVs: Form1099DIV[];
+  form1099Bs: Form1099B[];
+}
+
 export interface Education {
   isFullTimeStudent: boolean;
   institutionName: string;
@@ -89,7 +131,7 @@ export interface AdditionalDeductions {
 
 export interface DocumentMeta {
   fileName: string;
-  type: "w2" | "property_tax" | "1098t" | "other";
+  type: "w2" | "1099int" | "1099div" | "1099b" | "property_tax" | "1098t" | "other";
   storagePath: string;
   uploadedAt: string;
 }
@@ -118,6 +160,7 @@ export interface TaxReturn {
   filingStatus: FilingStatus;
   residency: Residency;
   w2s: W2Entry[];
+  investmentIncome: InvestmentIncome;
   education: Education;
   property: Property;
   additionalDeductions: AdditionalDeductions;
@@ -130,6 +173,7 @@ export const INTAKE_STEPS = [
   { id: "filing-status", label: "Filing Status" },
   { id: "residency", label: "Residency" },
   { id: "w2-income", label: "W-2 Income" },
+  { id: "investments", label: "Investments" },
   { id: "education", label: "Education" },
   { id: "property", label: "Property" },
   { id: "deductions", label: "Deductions" },
@@ -154,6 +198,11 @@ export function getDefaultTaxReturn(): TaxReturn {
     filingStatus: "single",
     residency: { state: "GA", fullYear: true },
     w2s: [],
+    investmentIncome: {
+      form1099INTs: [],
+      form1099DIVs: [],
+      form1099Bs: [],
+    },
     education: { isFullTimeStudent: false, institutionName: "", tuitionPaid: 0 },
     property: {
       hasProperty: false,

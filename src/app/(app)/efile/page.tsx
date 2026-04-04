@@ -8,6 +8,7 @@ import { Disclaimer } from "@/components/layout/Disclaimer";
 import { useTaxReturn } from "@/context/TaxReturnContext";
 import { FILING_STATUS_LABELS } from "@/types";
 import type { TaxResult } from "@/lib/tax/types";
+import type { InvestmentIncome } from "@/types";
 
 const EFILE_URL = "https://www.freefilefillableforms.com/home/default.php";
 
@@ -23,7 +24,7 @@ function buildForm1040Fields(
   taxReturn: ReturnType<typeof useTaxReturn>["taxReturn"]
 ): EFileField[] {
   const { federal } = result;
-  const w2 = taxReturn.w2s[0];
+  const w2Wages = taxReturn.w2s.reduce((s, w) => s + w.wages, 0);
   const filingLabel = FILING_STATUS_LABELS[taxReturn.filingStatus] || taxReturn.filingStatus;
 
   const aotc = federal.credits.find(
@@ -58,9 +59,39 @@ function buildForm1040Fields(
     {
       line: "1a",
       label: "Wages, salaries, tips (from W-2 Box 1)",
-      value: fmt(federal.grossIncome),
-      raw: federal.grossIncome,
+      value: fmt(w2Wages),
+      raw: w2Wages,
     },
+  ];
+
+  // Investment income lines
+  const inv = taxReturn.investmentIncome;
+  const totalInterest = inv?.form1099INTs?.reduce((s, f) => s + f.interestIncome, 0) ?? 0;
+  const totalOrdDividends = inv?.form1099DIVs?.reduce((s, f) => s + f.ordinaryDividends, 0) ?? 0;
+  const totalQualDividends = inv?.form1099DIVs?.reduce((s, f) => s + f.qualifiedDividends, 0) ?? 0;
+  const capitalGainFromDivs = inv?.form1099DIVs?.reduce((s, f) => s + f.totalCapitalGain, 0) ?? 0;
+  const netBrokerGain = inv?.form1099Bs?.reduce((s, f) => s + (f.proceeds - f.costBasis), 0) ?? 0;
+  const netCapital = netBrokerGain + capitalGainFromDivs;
+  const capitalLossDeduction = netCapital < 0 ? Math.max(netCapital, -3000) : netCapital;
+
+  if (totalInterest > 0) {
+    fields.push(
+      { line: "2b", label: "Taxable interest", value: fmt(totalInterest), raw: totalInterest }
+    );
+  }
+  if (totalOrdDividends > 0) {
+    fields.push(
+      { line: "3a", label: "Qualified dividends", value: fmt(totalQualDividends), raw: totalQualDividends },
+      { line: "3b", label: "Ordinary dividends", value: fmt(totalOrdDividends), raw: totalOrdDividends }
+    );
+  }
+  if (netCapital !== 0) {
+    fields.push(
+      { line: "7", label: `Capital ${capitalLossDeduction >= 0 ? "gain" : "loss"}`, value: fmt(capitalLossDeduction), raw: capitalLossDeduction }
+    );
+  }
+
+  fields.push(
     {
       line: "9",
       label: "Total income",
@@ -97,8 +128,8 @@ function buildForm1040Fields(
       label: "Tax (from Tax Table or Tax Computation)",
       value: fmt(federal.taxBeforeCredits),
       raw: federal.taxBeforeCredits,
-    },
-  ];
+    }
+  );
 
   if (aotc) {
     fields.push(
@@ -247,6 +278,65 @@ function buildW2Fields(
   });
 }
 
+function buildInvestmentFields(
+  inv: InvestmentIncome | undefined
+): { intFields: EFileField[][]; divFields: EFileField[][]; bFields: EFileField[][] } {
+  if (!inv) return { intFields: [], divFields: [], bFields: [] };
+
+  const intFields = (inv.form1099INTs || []).map((f, idx) => {
+    const prefix = (inv.form1099INTs || []).length > 1 ? `#${idx + 1}: ` : "";
+    const fields: EFileField[] = [
+      { line: "Payer", label: `${prefix}Payer Name`, value: f.payerName, raw: f.payerName },
+      { line: "EIN", label: `${prefix}Payer EIN`, value: f.payerEIN, raw: f.payerEIN },
+      { line: "Box 1", label: `${prefix}Interest income`, value: fmt(f.interestIncome), raw: f.interestIncome },
+    ];
+    if (f.earlyWithdrawalPenalty > 0)
+      fields.push({ line: "Box 2", label: `${prefix}Early withdrawal penalty`, value: fmt(f.earlyWithdrawalPenalty), raw: f.earlyWithdrawalPenalty });
+    if (f.federalWithheld > 0)
+      fields.push({ line: "Box 4", label: `${prefix}Federal tax withheld`, value: fmt(f.federalWithheld), raw: f.federalWithheld });
+    if (f.taxExemptInterest > 0)
+      fields.push({ line: "Box 8", label: `${prefix}Tax-exempt interest`, value: fmt(f.taxExemptInterest), raw: f.taxExemptInterest });
+    return fields;
+  });
+
+  const divFields = (inv.form1099DIVs || []).map((f, idx) => {
+    const prefix = (inv.form1099DIVs || []).length > 1 ? `#${idx + 1}: ` : "";
+    const fields: EFileField[] = [
+      { line: "Payer", label: `${prefix}Payer Name`, value: f.payerName, raw: f.payerName },
+      { line: "EIN", label: `${prefix}Payer EIN`, value: f.payerEIN, raw: f.payerEIN },
+      { line: "Box 1a", label: `${prefix}Ordinary dividends`, value: fmt(f.ordinaryDividends), raw: f.ordinaryDividends },
+      { line: "Box 1b", label: `${prefix}Qualified dividends`, value: fmt(f.qualifiedDividends), raw: f.qualifiedDividends },
+    ];
+    if (f.totalCapitalGain > 0)
+      fields.push({ line: "Box 2a", label: `${prefix}Total capital gain dist.`, value: fmt(f.totalCapitalGain), raw: f.totalCapitalGain });
+    if (f.federalWithheld > 0)
+      fields.push({ line: "Box 4", label: `${prefix}Federal tax withheld`, value: fmt(f.federalWithheld), raw: f.federalWithheld });
+    if (f.foreignTaxPaid > 0)
+      fields.push({ line: "Box 7", label: `${prefix}Foreign tax paid`, value: fmt(f.foreignTaxPaid), raw: f.foreignTaxPaid });
+    if (f.exemptInterestDividends > 0)
+      fields.push({ line: "Box 12", label: `${prefix}Exempt-interest dividends`, value: fmt(f.exemptInterestDividends), raw: f.exemptInterestDividends });
+    return fields;
+  });
+
+  const bFields = (inv.form1099Bs || []).map((f, idx) => {
+    const prefix = (inv.form1099Bs || []).length > 1 ? `#${idx + 1}: ` : "";
+    const gl = f.proceeds - f.costBasis;
+    const fields: EFileField[] = [
+      { line: "Broker", label: `${prefix}${f.brokerName || "Broker"}`, value: f.description || "—", raw: f.description },
+      { line: "Acquired", label: `${prefix}Date acquired`, value: f.dateAcquired || "Various", raw: f.dateAcquired },
+      { line: "Sold", label: `${prefix}Date sold`, value: f.dateSold || "Various", raw: f.dateSold },
+      { line: "1d", label: `${prefix}Proceeds`, value: fmt(f.proceeds), raw: f.proceeds },
+      { line: "1e", label: `${prefix}Cost basis`, value: fmt(f.costBasis), raw: f.costBasis },
+      { line: "G/L", label: `${prefix}${gl >= 0 ? "Gain" : "Loss"} (${f.isShortTerm ? "Short" : "Long"}-term)`, value: fmt(gl), raw: gl },
+    ];
+    if (f.federalWithheld > 0)
+      fields.push({ line: "Box 4", label: `${prefix}Federal tax withheld`, value: fmt(f.federalWithheld), raw: f.federalWithheld });
+    return fields;
+  });
+
+  return { intFields, divFields, bFields };
+}
+
 function buildStateFields(
   result: TaxResult
 ): EFileField[] {
@@ -331,6 +421,7 @@ export default function EFilePage() {
 
   const form1040Fields = buildForm1040Fields(result, taxReturn);
   const w2FieldSets = buildW2Fields(taxReturn);
+  const { intFields, divFields, bFields } = buildInvestmentFields(taxReturn.investmentIncome);
   const stateFields = buildStateFields(result);
 
   function handleCopy(value: string, key: string) {
@@ -412,6 +503,93 @@ export default function EFilePage() {
                 onCopy={handleCopy}
                 copied={copied}
               />
+            ))}
+          </div>
+        </Card>
+      ))}
+
+      {/* 1099-INT */}
+      {intFields.map((fields, idx) => (
+        <Card key={`int-${idx}`}>
+          <div className="flex items-center justify-between mb-2">
+            <CardTitle>
+              1099-INT{intFields.length > 1 ? ` #${idx + 1}` : ""} — Interest Income
+            </CardTitle>
+            <button
+              onClick={() => handleCopyAll(fields, `int-${idx}`)}
+              className={`text-xs px-3 py-1 rounded transition-colors ${
+                copied === `all-int-${idx}`
+                  ? "bg-green-100 text-green-700"
+                  : "bg-gray-100 hover:bg-gray-200 text-gray-600"
+              }`}
+            >
+              {copied === `all-int-${idx}` ? "Copied All" : "Copy All"}
+            </button>
+          </div>
+          <CardDescription>
+            Enter on Schedule B, Part I (Interest)
+          </CardDescription>
+          <div className="mt-3">
+            {fields.map((field, i) => (
+              <CopyableRow key={i} field={field} onCopy={handleCopy} copied={copied} />
+            ))}
+          </div>
+        </Card>
+      ))}
+
+      {/* 1099-DIV */}
+      {divFields.map((fields, idx) => (
+        <Card key={`div-${idx}`}>
+          <div className="flex items-center justify-between mb-2">
+            <CardTitle>
+              1099-DIV{divFields.length > 1 ? ` #${idx + 1}` : ""} — Dividends
+            </CardTitle>
+            <button
+              onClick={() => handleCopyAll(fields, `div-${idx}`)}
+              className={`text-xs px-3 py-1 rounded transition-colors ${
+                copied === `all-div-${idx}`
+                  ? "bg-green-100 text-green-700"
+                  : "bg-gray-100 hover:bg-gray-200 text-gray-600"
+              }`}
+            >
+              {copied === `all-div-${idx}` ? "Copied All" : "Copy All"}
+            </button>
+          </div>
+          <CardDescription>
+            Enter on Schedule B, Part II (Dividends)
+          </CardDescription>
+          <div className="mt-3">
+            {fields.map((field, i) => (
+              <CopyableRow key={i} field={field} onCopy={handleCopy} copied={copied} />
+            ))}
+          </div>
+        </Card>
+      ))}
+
+      {/* 1099-B */}
+      {bFields.map((fields, idx) => (
+        <Card key={`b-${idx}`}>
+          <div className="flex items-center justify-between mb-2">
+            <CardTitle>
+              1099-B{bFields.length > 1 ? ` #${idx + 1}` : ""} — Brokerage Transaction
+            </CardTitle>
+            <button
+              onClick={() => handleCopyAll(fields, `b-${idx}`)}
+              className={`text-xs px-3 py-1 rounded transition-colors ${
+                copied === `all-b-${idx}`
+                  ? "bg-green-100 text-green-700"
+                  : "bg-gray-100 hover:bg-gray-200 text-gray-600"
+              }`}
+            >
+              {copied === `all-b-${idx}` ? "Copied All" : "Copy All"}
+            </button>
+          </div>
+          <CardDescription>
+            Enter on Form 8949 and Schedule D
+          </CardDescription>
+          <div className="mt-3">
+            {fields.map((field, i) => (
+              <CopyableRow key={i} field={field} onCopy={handleCopy} copied={copied} />
             ))}
           </div>
         </Card>
