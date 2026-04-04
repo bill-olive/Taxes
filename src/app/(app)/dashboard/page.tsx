@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card, CardTitle, CardDescription } from "@/components/ui/Card";
 import { useTaxReturn } from "@/context/TaxReturnContext";
@@ -13,7 +13,9 @@ import { formatCurrency, getCurrentTaxYear } from "@/lib/utils";
 export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const { taxReturn, taxYear, loading, error: firestoreError } = useTaxReturn();
+  const [hasAutoResumed, setHasAutoResumed] = useState(false);
   const [priorYears, setPriorYears] = useState<
     { year: number; status: string }[]
   >([]);
@@ -35,6 +37,25 @@ export default function DashboardPage() {
       </div>
     );
   }
+
+  // Auto-resume: navigate to last step if user has an in-progress return
+  useEffect(() => {
+    if (
+      !loading &&
+      !firestoreError &&
+      !hasAutoResumed &&
+      searchParams.get("stay") !== "1" &&
+      taxReturn.status === "in_progress" &&
+      taxReturn.currentStep > 0
+    ) {
+      setHasAutoResumed(true);
+      const resumeLink =
+        taxReturn.currentStep >= INTAKE_STEPS.length
+          ? "/documents"
+          : `/intake/${INTAKE_STEPS[taxReturn.currentStep].id}`;
+      router.push(resumeLink);
+    }
+  }, [loading, firestoreError, hasAutoResumed, searchParams, taxReturn, router]);
 
   if (firestoreError) {
     return (
@@ -164,16 +185,18 @@ export default function DashboardPage() {
               </p>
             </div>
             <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <p className="text-xs text-gray-500">Georgia</p>
+              <p className="text-xs text-gray-500">
+                {taxReturn.calculationResult.state?.stateName ?? "State"}
+              </p>
               <p
-                className={`text-lg font-semibold ${taxReturn.calculationResult.georgia.refundOrOwed >= 0 ? "text-green-600" : "text-red-600"}`}
+                className={`text-lg font-semibold ${(taxReturn.calculationResult.state?.refundOrOwed ?? 0) >= 0 ? "text-green-600" : "text-red-600"}`}
               >
-                {taxReturn.calculationResult.georgia.refundOrOwed >= 0
+                {(taxReturn.calculationResult.state?.refundOrOwed ?? 0) >= 0
                   ? "+"
                   : "-"}
                 {formatCurrency(
                   Math.abs(
-                    taxReturn.calculationResult.georgia.refundOrOwed
+                    taxReturn.calculationResult.state?.refundOrOwed ?? 0
                   )
                 )}
               </p>

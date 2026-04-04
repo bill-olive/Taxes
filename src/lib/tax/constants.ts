@@ -110,6 +110,27 @@ export const CITATIONS: Record<string, Citation> = {
     url: "https://www.irs.gov/credits-deductions/individuals/earned-income-tax-credit-eitc",
     note: "IRC § 32. Max credit $649. Phase-out begins at $10,620 AGI, ends at $19,104.",
   },
+  californiaRate: {
+    rule: "California Income Tax Rates",
+    source: "California Revenue & Taxation Code § 17041",
+    section: "FTB Tax Rate Schedules",
+    url: "https://www.ftb.ca.gov/forms/2025/2025-540-tax-rate-schedules.html",
+    note: "9 graduated brackets from 1% to 12.3%, plus 1% Mental Health Services Tax on income over $1M (Proposition 63). Total top rate: 13.3%.",
+  },
+  californiaStandardDeduction: {
+    rule: "California Standard Deduction",
+    source: "California Revenue & Taxation Code § 17073.5",
+    section: "FTB Form 540 Instructions",
+    url: "https://www.ftb.ca.gov",
+    note: "$5,540 for single/MFS, $11,080 for MFJ/QSS. Far below federal standard deduction.",
+  },
+  californiaExemptionCredit: {
+    rule: "California Personal Exemption Credit",
+    source: "California Revenue & Taxation Code § 17054",
+    section: "FTB Form 540",
+    url: "https://www.ftb.ca.gov",
+    note: "$144 credit per taxpayer (single), $288 for MFJ. $433 per dependent.",
+  },
 } as const;
 
 // All values from Rev. Proc. 2024-40 for 2025 tax year
@@ -211,4 +232,81 @@ export const GEORGIA = {
   },
   // Flat rate — no brackets for 2025
   flatRate: 0.0539,
+} as const;
+
+// California tax rules — R&TC § 17041, FTB publications
+export const CALIFORNIA = {
+  standardDeduction: {
+    single: 5540,
+    married_filing_jointly: 11080,
+    married_filing_separately: 5540,
+    head_of_household: 5540,
+    qualifying_surviving_spouse: 11080,
+  },
+  exemptionCredit: {
+    single: 144,
+    married_filing_jointly: 288,
+    married_filing_separately: 144,
+    head_of_household: 144,
+    qualifying_surviving_spouse: 288,
+  },
+  mentalHealthTaxThreshold: 1000000,
+  mentalHealthTaxRate: 0.01,
+  brackets: {
+    single: [
+      { min: 0, max: 10756, rate: 0.01 },
+      { min: 10756, max: 25499, rate: 0.02 },
+      { min: 25499, max: 40245, rate: 0.04 },
+      { min: 40245, max: 55866, rate: 0.06 },
+      { min: 55866, max: 70612, rate: 0.08 },
+      { min: 70612, max: 360659, rate: 0.093 },
+      { min: 360659, max: 432787, rate: 0.103 },
+      { min: 432787, max: 721314, rate: 0.113 },
+      { min: 721314, max: Infinity, rate: 0.123 },
+    ],
+    married_filing_jointly: [
+      { min: 0, max: 21512, rate: 0.01 },
+      { min: 21512, max: 50998, rate: 0.02 },
+      { min: 50998, max: 80490, rate: 0.04 },
+      { min: 80490, max: 111732, rate: 0.06 },
+      { min: 111732, max: 141224, rate: 0.08 },
+      { min: 141224, max: 721318, rate: 0.093 },
+      { min: 721318, max: 865574, rate: 0.103 },
+      { min: 865574, max: 1442628, rate: 0.113 },
+      { min: 1442628, max: Infinity, rate: 0.123 },
+    ],
+    married_filing_separately: [
+      { min: 0, max: 10756, rate: 0.01 },
+      { min: 10756, max: 25499, rate: 0.02 },
+      { min: 25499, max: 40245, rate: 0.04 },
+      { min: 40245, max: 55866, rate: 0.06 },
+      { min: 55866, max: 70612, rate: 0.08 },
+      { min: 70612, max: 360659, rate: 0.093 },
+      { min: 360659, max: 432787, rate: 0.103 },
+      { min: 432787, max: 721314, rate: 0.113 },
+      { min: 721314, max: Infinity, rate: 0.123 },
+    ],
+    head_of_household: [
+      { min: 0, max: 21527, rate: 0.01 },
+      { min: 21527, max: 50998, rate: 0.02 },
+      { min: 50998, max: 65744, rate: 0.04 },
+      { min: 65744, max: 81365, rate: 0.06 },
+      { min: 81365, max: 96111, rate: 0.08 },
+      { min: 96111, max: 490158, rate: 0.093 },
+      { min: 490158, max: 588189, rate: 0.103 },
+      { min: 588189, max: 980316, rate: 0.113 },
+      { min: 980316, max: Infinity, rate: 0.123 },
+    ],
+    qualifying_surviving_spouse: [
+      { min: 0, max: 21512, rate: 0.01 },
+      { min: 21512, max: 50998, rate: 0.02 },
+      { min: 50998, max: 80490, rate: 0.04 },
+      { min: 80490, max: 111732, rate: 0.06 },
+      { min: 111732, max: 141224, rate: 0.08 },
+      { min: 141224, max: 721318, rate: 0.093 },
+      { min: 721318, max: 865574, rate: 0.103 },
+      { min: 865574, max: 1442628, rate: 0.113 },
+      { min: 1442628, max: Infinity, rate: 0.123 },
+    ],
+  },
 } as const;

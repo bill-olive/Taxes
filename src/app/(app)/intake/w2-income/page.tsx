@@ -1,14 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useDropzone } from "react-dropzone";
 import { StepWrapper } from "@/components/intake/StepWrapper";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card, CardTitle } from "@/components/ui/Card";
 import { useTaxReturn } from "@/context/TaxReturnContext";
-import type { W2Entry } from "@/types";
-import { formatCurrency } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
+import { uploadDocument } from "@/lib/firebase/storage";
+import { getCurrentTaxYear, formatCurrency } from "@/lib/utils";
+import type { W2Entry, DocumentMeta } from "@/types";
 
 const emptyW2: W2Entry = {
   employerName: "",
@@ -21,12 +24,16 @@ const emptyW2: W2Entry = {
 
 export default function W2IncomePage() {
   const router = useRouter();
+  const { user } = useAuth();
   const { taxReturn, updateSection } = useTaxReturn();
   const [w2s, setW2s] = useState<W2Entry[]>(
     taxReturn.w2s.length > 0 ? taxReturn.w2s : [{ ...emptyW2 }]
   );
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [parsing, setParsing] = useState(false);
+  const [parseError, setParseError] = useState("");
+  const [parseSuccess, setParseSuccess] = useState("");
 
   function updateW2(index: number, field: keyof W2Entry, value: string | number) {
     setW2s((prev) => {
@@ -45,6 +52,103 @@ export default function W2IncomePage() {
     if (w2s.length === 1) return;
     setW2s((prev) => prev.filter((_, i) => i !== index));
   }
+
+  const onDropW2Image = useCallback(
+    async (acceptedFiles: File[]) => {
+      if (acceptedFiles.length === 0 || !user) return;
+      const file = acceptedFiles[0];
+
+      if (file.size > 10 * 1024 * 1024) {
+        setParseError("File must be under 10 MB.");
+        return;
+      }
+
+      setParsing(true);
+      setParseError("");
+      setParseSuccess("");
+
+      try {
+        // Upload to storage first
+        const { storagePath } = await uploadDocument(
+          user.uid,
+          getCurrentTaxYear(),
+          file
+        );
+
+        // Save document metadata
+        const newDoc: DocumentMeta = {
+          fileName: file.name,
+          type: "w2",
+          storagePath,
+          uploadedAt: new Date().toISOString(),
+        };
+        await updateSection("documents", [...taxReturn.documents, newDoc]);
+
+        // Send to LLM for parsing
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const resp = await fetch("/api/parse-w2", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json();
+          throw new Error(err.error || "Parse failed");
+        }
+
+        const { data } = await resp.json();
+
+        // Add parsed W-2 data
+        const newW2: W2Entry = {
+          employerName: data.employerName || "",
+          employerEIN: data.employerEIN || "",
+          wages: data.wages || 0,
+          federalWithheld: data.federalWithheld || 0,
+          stateWages: data.stateWages || 0,
+          stateWithheld: data.stateWithheld || 0,
+        };
+
+        // Replace the first empty W-2, or add a new one
+        setW2s((prev) => {
+          const firstEmpty = prev.findIndex(
+            (w) => !w.employerName && w.wages === 0
+          );
+          if (firstEmpty >= 0) {
+            const updated = [...prev];
+            updated[firstEmpty] = newW2;
+            return updated;
+          }
+          return [...prev, newW2];
+        });
+
+        setParseSuccess(
+          `Imported W-2 from ${data.employerName || "your employer"}. Document saved. Please verify the numbers below.`
+        );
+      } catch (err) {
+        setParseError(
+          err instanceof Error
+            ? err.message
+            : "Failed to parse W-2 image. You can enter the data manually."
+        );
+      } finally {
+        setParsing(false);
+      }
+    },
+    [user, taxReturn.documents, updateSection]
+  );
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: onDropW2Image,
+    accept: {
+      "image/png": [".png"],
+      "image/jpeg": [".jpg", ".jpeg"],
+      "application/pdf": [".pdf"],
+    },
+    maxFiles: 1,
+    disabled: parsing,
+  });
 
   function validate(): boolean {
     const errs: Record<string, string> = {};
@@ -68,12 +172,59 @@ export default function W2IncomePage() {
   return (
     <StepWrapper
       title="W-2 Income"
-      description="Enter the information from your W-2 form(s). You should have received one from each employer you worked for in 2025."
+      description="Enter the information from your W-2 form(s), or upload an image and we'll read it for you."
       helpText="Look at your W-2 form: Box 1 is your wages, Box 2 is federal tax withheld, Box 16 is state wages, and Box 17 is state tax withheld."
       onNext={handleNext}
       onBack={() => router.push("/intake/residency")}
       isSubmitting={saving}
     >
+      {/* W-2 Image Upload */}
+      <Card variant="info">
+        <CardTitle className="text-base">Import W-2 from photo</CardTitle>
+        <p className="text-sm text-gray-600 mt-1 mb-3">
+          Take a photo or upload an image of your W-2 and we&apos;ll extract the data automatically. The document will also be saved to your files.
+        </p>
+        <div
+          {...getRootProps()}
+          className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+            isDragActive
+              ? "border-blue-500 bg-blue-50"
+              : "border-blue-200 hover:border-blue-300 bg-white"
+          } ${parsing ? "opacity-50 cursor-wait" : ""}`}
+        >
+          <input {...getInputProps()} />
+          {parsing ? (
+            <div className="flex items-center justify-center gap-3">
+              <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full" />
+              <span className="text-sm text-blue-700">
+                Reading your W-2...
+              </span>
+            </div>
+          ) : (
+            <p className="text-sm text-blue-700">
+              Drop a W-2 image here, or click to upload (JPG, PNG, PDF)
+            </p>
+          )}
+        </div>
+        {parseError && (
+          <p className="text-sm text-red-600 mt-2">{parseError}</p>
+        )}
+        {parseSuccess && (
+          <p className="text-sm text-green-700 mt-2">{parseSuccess}</p>
+        )}
+      </Card>
+
+      <div className="relative my-2">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-200" />
+        </div>
+        <div className="relative flex justify-center text-xs">
+          <span className="bg-white px-3 text-gray-400">
+            or enter manually
+          </span>
+        </div>
+      </div>
+
       {w2s.map((w2, index) => (
         <Card key={index} className="space-y-4">
           <div className="flex items-center justify-between">
@@ -153,7 +304,7 @@ export default function W2IncomePage() {
                   parseFloat(e.target.value) || 0
                 )
               }
-              helpText="Tax already paid to Georgia"
+              helpText="Tax already paid to your state"
             />
           </div>
         </Card>

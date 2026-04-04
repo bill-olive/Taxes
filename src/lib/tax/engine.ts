@@ -1,11 +1,36 @@
 import { TAX_YEAR } from "./constants";
-import type { TaxInput, TaxResult, Recommendation } from "./types";
+import type { TaxInput, TaxResult, StateResult, Recommendation } from "./types";
 import { calculateFederalTax } from "./federal";
 import { calculateGeorgiaTax } from "./georgia";
+import { calculateCaliforniaTax } from "./california";
+
+function calculateStateTax(input: TaxInput, stateCode: string): StateResult {
+  switch (stateCode) {
+    case "CA": {
+      const ca = calculateCaliforniaTax(input);
+      return {
+        stateCode: "CA",
+        stateName: "California",
+        refundOrOwed: ca.refundOrOwed,
+        lineItems: ca.lineItems,
+      };
+    }
+    case "GA":
+    default: {
+      const ga = calculateGeorgiaTax(input);
+      return {
+        stateCode: "GA",
+        stateName: "Georgia",
+        refundOrOwed: ga.refundOrOwed,
+        lineItems: ga.lineItems,
+      };
+    }
+  }
+}
 
 function generateRecommendations(
   input: TaxInput,
-  result: Omit<TaxResult, "recommendations" | "totalRefundOrOwed" | "calculatedAt" | "taxYear">
+  result: { federal: TaxResult["federal"]; state: StateResult }
 ): Recommendation[] {
   const recs: Recommendation[] = [];
 
@@ -57,7 +82,7 @@ function generateRecommendations(
   }
 
   // Refund info
-  const totalRefund = result.federal.refundOrOwed + result.georgia.refundOrOwed;
+  const totalRefund = result.federal.refundOrOwed + result.state.refundOrOwed;
   if (totalRefund > 0) {
     recs.push({
       id: "refund-expected",
@@ -81,19 +106,19 @@ function generateRecommendations(
   return recs;
 }
 
-export function calculateTaxes(input: TaxInput): TaxResult {
+export function calculateTaxes(input: TaxInput, stateCode: string = "GA"): TaxResult {
   const federal = calculateFederalTax(input);
-  const georgia = calculateGeorgiaTax(input);
+  const state = calculateStateTax(input, stateCode);
 
-  const partial = { federal, georgia };
+  const partial = { federal, state };
   const recommendations = generateRecommendations(input, partial);
   const totalRefundOrOwed =
-    Math.round((federal.refundOrOwed + georgia.refundOrOwed) * 100) / 100;
+    Math.round((federal.refundOrOwed + state.refundOrOwed) * 100) / 100;
 
   return {
     taxYear: TAX_YEAR,
     federal,
-    georgia,
+    state,
     recommendations,
     totalRefundOrOwed,
     calculatedAt: new Date().toISOString(),

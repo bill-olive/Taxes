@@ -77,6 +77,13 @@ export interface GeorgiaResult {
   lineItems: LineItem[];
 }
 
+export interface StateResult {
+  stateCode: string;
+  stateName: string;
+  refundOrOwed: number;
+  lineItems: LineItem[];
+}
+
 export interface Recommendation {
   id: string;
   type: "credit" | "deduction" | "info" | "warning";
@@ -89,7 +96,9 @@ export interface Recommendation {
 export interface TaxResult {
   taxYear: number;
   federal: FederalResult;
-  georgia: GeorgiaResult;
+  state: StateResult;
+  /** @deprecated Use `state` instead */
+  georgia?: GeorgiaResult;
   recommendations: Recommendation[];
   totalRefundOrOwed: number;
   calculatedAt: string;

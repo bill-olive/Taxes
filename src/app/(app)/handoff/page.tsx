@@ -3,10 +3,31 @@
 import { Button } from "@/components/ui/Button";
 import { Card, CardTitle, CardDescription } from "@/components/ui/Card";
 import { Disclaimer } from "@/components/layout/Disclaimer";
+import { useTaxReturn } from "@/context/TaxReturnContext";
 import { useRouter } from "next/navigation";
+
+const STATE_FILING_INFO: Record<string, { title: string; description: string; url: string; buttonLabel: string; formName: string }> = {
+  GA: {
+    title: "Georgia State Return",
+    description: "File your Georgia return through the Georgia Tax Center",
+    url: "https://gtc.dor.ga.gov",
+    buttonLabel: "Go to Georgia Tax Center",
+    formName: "Form 500",
+  },
+  CA: {
+    title: "California State Return",
+    description: "File your California return through the Franchise Tax Board",
+    url: "https://www.ftb.ca.gov/file/index.html",
+    buttonLabel: "Go to California FTB",
+    formName: "Form 540",
+  },
+};
 
 export default function HandoffPage() {
   const router = useRouter();
+  const { taxReturn } = useTaxReturn();
+  const stateCode = taxReturn.residency?.state || "GA";
+  const stateInfo = STATE_FILING_INFO[stateCode] || STATE_FILING_INFO.GA;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -66,23 +87,20 @@ export default function HandoffPage() {
       </Card>
 
       <Card>
-        <CardTitle>Georgia State Return</CardTitle>
-        <CardDescription>
-          File your Georgia return through the Georgia Tax Center
-        </CardDescription>
+        <CardTitle>{stateInfo.title}</CardTitle>
+        <CardDescription>{stateInfo.description}</CardDescription>
         <div className="mt-4 space-y-3">
           <p className="text-sm text-gray-600">
-            Georgia residents can file their state return through the Georgia Tax
-            Center. Use the Georgia section of your TaxReady summary to fill in
-            Form 500.
+            Use the state section of your TaxReady summary to fill in{" "}
+            {stateInfo.formName}.
           </p>
           <a
-            href="https://gtc.dor.ga.gov"
+            href={stateInfo.url}
             target="_blank"
             rel="noopener noreferrer"
           >
             <Button variant="secondary" className="mt-2">
-              Go to Georgia Tax Center
+              {stateInfo.buttonLabel}
             </Button>
           </a>
         </div>

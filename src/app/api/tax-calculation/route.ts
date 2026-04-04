@@ -14,7 +14,8 @@ export async function POST(request: NextRequest) {
     }
 
     const input = taxReturnToInput(taxReturn);
-    const result = calculateTaxes(input);
+    const stateCode = taxReturn.residency?.state || "GA";
+    const result = calculateTaxes(input, stateCode);
 
     return NextResponse.json(result);
   } catch (error) {

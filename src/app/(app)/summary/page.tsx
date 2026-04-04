@@ -72,7 +72,7 @@ export default function SummaryPage() {
 
   if (!result) return null;
 
-  const { federal, georgia, recommendations } = result;
+  const { federal, state, recommendations } = result;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -103,9 +103,9 @@ export default function SummaryPage() {
         </p>
         <p className="text-xs text-gray-500 mt-2">
           Federal: {formatCurrency(Math.abs(federal.refundOrOwed))}{" "}
-          {federal.refundOrOwed >= 0 ? "refund" : "owed"} | Georgia:{" "}
-          {formatCurrency(Math.abs(georgia.refundOrOwed))}{" "}
-          {georgia.refundOrOwed >= 0 ? "refund" : "owed"}
+          {federal.refundOrOwed >= 0 ? "refund" : "owed"} | {state.stateName}:{" "}
+          {formatCurrency(Math.abs(state.refundOrOwed))}{" "}
+          {state.refundOrOwed >= 0 ? "refund" : "owed"}
         </p>
       </Card>
 
@@ -151,14 +151,17 @@ export default function SummaryPage() {
         </dl>
       </Card>
 
-      {/* Georgia Summary — using lineItems with citations */}
+      {/* State Summary — using lineItems with citations */}
       <Card>
-        <CardTitle>Georgia Return (Form 500)</CardTitle>
+        <CardTitle>
+          {state.stateName} Return
+          {state.stateCode === "GA" ? " (Form 500)" : state.stateCode === "CA" ? " (Form 540)" : ""}
+        </CardTitle>
         <CardDescription>
-          Key line items from your Georgia state return
+          Key line items from your {state.stateName} state return
         </CardDescription>
         <dl className="mt-4 space-y-3">
-          {georgia.lineItems.map((item, idx) => (
+          {state.lineItems.map((item, idx) => (
             <LineItemRow key={idx} item={item} />
           ))}
         </dl>
