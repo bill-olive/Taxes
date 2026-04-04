@@ -107,6 +107,15 @@ export interface InvestmentIncome {
   form1099Bs: Form1099B[];
 }
 
+export interface Dependent {
+  firstName: string;
+  lastName: string;
+  relationship: string;
+  dob: string;
+  ssnLastFour: string;
+  monthsLived: number; // months lived with you in 2025
+}
+
 export interface Education {
   isFullTimeStudent: boolean;
   institutionName: string;
@@ -158,6 +167,7 @@ export interface TaxReturn {
   updatedAt: string;
   personalInfo: PersonalInfo;
   filingStatus: FilingStatus;
+  dependents: Dependent[];
   residency: Residency;
   w2s: W2Entry[];
   investmentIncome: InvestmentIncome;
@@ -196,6 +206,7 @@ export function getDefaultTaxReturn(): TaxReturn {
       address: { street: "", city: "", state: "GA", zip: "" },
     },
     filingStatus: "single",
+    dependents: [],
     residency: { state: "GA", fullYear: true },
     w2s: [],
     investmentIncome: {

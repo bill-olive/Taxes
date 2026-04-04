@@ -56,13 +56,42 @@ function buildForm1040Fields(
       value: `${taxReturn.personalInfo.address.street}, ${taxReturn.personalInfo.address.city}, ${taxReturn.personalInfo.address.state} ${taxReturn.personalInfo.address.zip}`,
       raw: `${taxReturn.personalInfo.address.street}, ${taxReturn.personalInfo.address.city}, ${taxReturn.personalInfo.address.state} ${taxReturn.personalInfo.address.zip}`,
     },
+  ];
+
+  // Dependents
+  if (taxReturn.dependents && taxReturn.dependents.length > 0) {
+    taxReturn.dependents.forEach((dep, idx) => {
+      fields.push(
+        {
+          line: `Dep ${idx + 1}`,
+          label: `Dependent name`,
+          value: `${dep.firstName} ${dep.lastName}`,
+          raw: `${dep.firstName} ${dep.lastName}`,
+        },
+        {
+          line: `Dep ${idx + 1}`,
+          label: `Relationship`,
+          value: dep.relationship,
+          raw: dep.relationship,
+        },
+        {
+          line: `Dep ${idx + 1}`,
+          label: `SSN (last 4)`,
+          value: `***-**-${dep.ssnLastFour}`,
+          raw: dep.ssnLastFour,
+        }
+      );
+    });
+  }
+
+  fields.push(
     {
       line: "1a",
       label: "Wages, salaries, tips (from W-2 Box 1)",
       value: fmt(w2Wages),
       raw: w2Wages,
-    },
-  ];
+    }
+  );
 
   // Investment income lines
   const inv = taxReturn.investmentIncome;
