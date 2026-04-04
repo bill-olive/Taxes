@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
-const SYSTEM_PROMPT = `You are a tax document parser. Extract W-2 form data from the provided image.
+const PARSE_PROMPT = `You are a tax document parser. Extract W-2 form data from the provided document.
 Return ONLY valid JSON with this exact structure (use 0 for any field you cannot read):
 {
   "employerName": "string",
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: "OpenAI API key not configured" },
+        { error: "OpenAI API key not configured. Please add OPENAI_API_KEY to your environment variables." },
         { status: 500 }
       );
     }
@@ -44,36 +44,65 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert file to base64
-    const bytes = await file.arrayBuffer();
-    const base64 = Buffer.from(bytes).toString("base64");
-    const mimeType = file.type || "image/jpeg";
-
     const openai = new OpenAI({ apiKey });
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 
-    const response = await openai.chat.completions.create({
-      model: "o3",
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: "Parse this W-2 form and extract all the data. Return only the JSON object.",
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:${mimeType};base64,${base64}`,
+    let content: string | null;
+
+    if (isPdf) {
+      // For PDFs: upload as a file to OpenAI, then reference it
+      const uploaded = await openai.files.create({
+        file,
+        purpose: "assistants",
+      });
+
+      const response = await openai.chat.completions.create({
+        model: "o3",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: PARSE_PROMPT + "\n\nParse this W-2 document and return only the JSON object." },
+              {
+                type: "file",
+                file: { file_id: uploaded.id },
+              } as never,
+            ],
+          },
+        ],
+      });
+
+      content = response.choices[0]?.message?.content ?? null;
+
+      // Clean up uploaded file
+      await openai.files.delete(uploaded.id).catch(() => {});
+    } else {
+      // For images: use base64 inline
+      const bytes = await file.arrayBuffer();
+      const base64 = Buffer.from(bytes).toString("base64");
+      const mimeType = file.type || "image/jpeg";
+
+      const response = await openai.chat.completions.create({
+        model: "o3",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: PARSE_PROMPT + "\n\nParse this W-2 form and return only the JSON object." },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:${mimeType};base64,${base64}`,
+                },
               },
-            },
-          ],
-        },
-      ],
-    });
+            ],
+          },
+        ],
+      });
 
-    const content = response.choices[0]?.message?.content;
+      content = response.choices[0]?.message?.content ?? null;
+    }
+
     if (!content) {
       return NextResponse.json(
         { error: "No response from AI model" },
@@ -106,8 +135,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("W-2 parse error:", error);
+    const message = error instanceof Error ? error.message : "Failed to parse W-2";
     return NextResponse.json(
-      { error: "Failed to parse W-2 image" },
+      { error: message },
       { status: 500 }
     );
   }
