@@ -70,7 +70,7 @@ export default function PropertyPage() {
       {hasProperty && (
         <>
           <Input
-            label="Property Tax Paid in 2024"
+            label="Property Tax Paid in 2025"
             type="number"
             value={propertyTax || ""}
             onChange={(e) => setPropertyTax(parseFloat(e.target.value) || 0)}
@@ -78,7 +78,7 @@ export default function PropertyPage() {
           />
 
           <Input
-            label="Mortgage Interest Paid in 2024"
+            label="Mortgage Interest Paid in 2025"
             type="number"
             value={mortgage || ""}
             onChange={(e) => setMortgage(parseFloat(e.target.value) || 0)}

@@ -52,7 +52,7 @@ export default function HandoffPage() {
         <div className="mt-4 space-y-3">
           <p className="text-sm text-gray-600">
             The IRS Free File program lets you file your federal return at no
-            cost if your AGI is $84,000 or less (2024). Use the prepared data
+            cost if your AGI is $84,000 or less (2025). Use the prepared data
             from your TaxReady summary to fill in the forms.
           </p>
           <a

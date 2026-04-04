@@ -68,7 +68,7 @@ export default function W2IncomePage() {
   return (
     <StepWrapper
       title="W-2 Income"
-      description="Enter the information from your W-2 form(s). You should have received one from each employer you worked for in 2024."
+      description="Enter the information from your W-2 form(s). You should have received one from each employer you worked for in 2025."
       helpText="Look at your W-2 form: Box 1 is your wages, Box 2 is federal tax withheld, Box 16 is state wages, and Box 17 is state tax withheld."
       onNext={handleNext}
       onBack={() => router.push("/intake/residency")}

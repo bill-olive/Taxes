@@ -28,5 +28,5 @@ export function maskSSN(lastFour: string): string {
 }
 
 export function getCurrentTaxYear(): number {
-  return 2024;
+  return 2025;
 }

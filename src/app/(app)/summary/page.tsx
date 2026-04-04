@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card, CardTitle, CardDescription } from "@/components/ui/Card";
+import { CitationTooltip } from "@/components/ui/CitationTooltip";
 import { Disclaimer } from "@/components/layout/Disclaimer";
 import { useTaxReturn } from "@/context/TaxReturnContext";
 import { formatCurrency } from "@/lib/utils";
-import type { TaxResult } from "@/lib/tax/types";
+import { CITATIONS } from "@/lib/tax/constants";
+import type { TaxResult, LineItem } from "@/lib/tax/types";
 
 export default function SummaryPage() {
   const router = useRouter();
@@ -80,6 +82,7 @@ export default function SummaryPage() {
         </h2>
         <p className="mt-1 text-sm text-gray-600">
           Tax Year {result.taxYear} — Review your complete return data below.
+          Click the <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold">i</span> icons to see the tax rule and source for each line item.
         </p>
       </div>
 
@@ -135,105 +138,29 @@ export default function SummaryPage() {
         </div>
       )}
 
-      {/* Federal Summary */}
+      {/* Federal Summary — using lineItems with citations */}
       <Card>
         <CardTitle>Federal Return (Form 1040)</CardTitle>
         <CardDescription>
           Key line items from your federal return
         </CardDescription>
         <dl className="mt-4 space-y-3">
-          <SummaryRow label="Gross Income (Line 1)" value={federal.grossIncome} />
-          <SummaryRow
-            label="Adjusted Gross Income (Line 11)"
-            value={federal.adjustedGrossIncome}
-          />
-          <SummaryRow
-            label={`Deduction — ${federal.deduction.recommendedMethod === "standard" ? "Standard" : "Itemized"}`}
-            value={
-              federal.deduction.recommendedMethod === "standard"
-                ? federal.deduction.standardDeduction
-                : federal.deduction.itemizedDeduction
-            }
-            negative
-          />
-          <SummaryRow
-            label="Taxable Income (Line 15)"
-            value={federal.taxableIncome}
-          />
-          <SummaryRow
-            label="Tax Before Credits"
-            value={federal.taxBeforeCredits}
-          />
-          {federal.credits
-            .filter((c) => c.eligible)
-            .map((credit) => (
-              <SummaryRow
-                key={credit.name}
-                label={credit.name}
-                value={credit.amount}
-                negative
-                highlight
-              />
-            ))}
-          <SummaryRow
-            label="Tax After Credits"
-            value={federal.taxAfterCredits}
-          />
-          <SummaryRow
-            label="Federal Tax Withheld"
-            value={federal.totalWithheld}
-            negative
-          />
-          <div className="border-t border-gray-200 pt-3">
-            <SummaryRow
-              label={
-                federal.refundOrOwed >= 0 ? "Federal Refund" : "Federal Owed"
-              }
-              value={Math.abs(federal.refundOrOwed)}
-              highlight
-            />
-          </div>
+          {federal.lineItems.map((item, idx) => (
+            <LineItemRow key={idx} item={item} />
+          ))}
         </dl>
       </Card>
 
-      {/* Georgia Summary */}
+      {/* Georgia Summary — using lineItems with citations */}
       <Card>
         <CardTitle>Georgia Return (Form 500)</CardTitle>
         <CardDescription>
           Key line items from your Georgia state return
         </CardDescription>
         <dl className="mt-4 space-y-3">
-          <SummaryRow label="Federal AGI" value={georgia.federalAGI} />
-          <SummaryRow label="Georgia AGI" value={georgia.georgiaAGI} />
-          <SummaryRow
-            label="GA Standard Deduction"
-            value={georgia.standardDeduction}
-            negative
-          />
-          <SummaryRow
-            label="GA Personal Exemption"
-            value={georgia.personalExemption}
-            negative
-          />
-          <SummaryRow
-            label="Georgia Taxable Income"
-            value={georgia.georgiaTaxableIncome}
-          />
-          <SummaryRow label="Georgia Tax" value={georgia.georgiaTax} />
-          <SummaryRow
-            label="State Tax Withheld"
-            value={georgia.stateWithheld}
-            negative
-          />
-          <div className="border-t border-gray-200 pt-3">
-            <SummaryRow
-              label={
-                georgia.refundOrOwed >= 0 ? "State Refund" : "State Owed"
-              }
-              value={Math.abs(georgia.refundOrOwed)}
-              highlight
-            />
-          </div>
+          {georgia.lineItems.map((item, idx) => (
+            <LineItemRow key={idx} item={item} />
+          ))}
         </dl>
       </Card>
 
@@ -246,6 +173,7 @@ export default function SummaryPage() {
             label="Standard Deduction"
             value={federal.deduction.standardDeduction}
             highlight={federal.deduction.recommendedMethod === "standard"}
+            citation={CITATIONS.federalStandardDeduction}
           />
           <SummaryRow
             label="Itemized Deductions Total"
@@ -258,18 +186,19 @@ export default function SummaryPage() {
                 label="  SALT (State/Local Tax + Property Tax)"
                 value={federal.deduction.itemizedBreakdown.saltDeduction}
                 sub
+                citation={CITATIONS.saltCap}
               />
               <SummaryRow
                 label="  Mortgage Interest"
                 value={federal.deduction.itemizedBreakdown.mortgageInterest}
                 sub
+                citation={federal.deduction.itemizedBreakdown.mortgageInterest > 0 ? CITATIONS.mortgageInterest : undefined}
               />
               <SummaryRow
                 label="  Charitable Contributions"
-                value={
-                  federal.deduction.itemizedBreakdown.charitableContributions
-                }
+                value={federal.deduction.itemizedBreakdown.charitableContributions}
                 sub
+                citation={federal.deduction.itemizedBreakdown.charitableContributions > 0 ? CITATIONS.charitableContributions : undefined}
               />
             </>
           )}
@@ -288,14 +217,17 @@ export default function SummaryPage() {
             <SummaryRow
               label="Property Tax Paid"
               value={taxReturn.property.propertyTaxPaid}
+              citation={CITATIONS.propertyTaxDeduction}
             />
             <SummaryRow
               label="HOA / Condo Fees"
               value={taxReturn.property.hoaDues}
+              citation={CITATIONS.hoaNotDeductible}
             />
             <SummaryRow
               label="Homeowner's Insurance"
               value={taxReturn.property.insuranceCost}
+              citation={CITATIONS.insuranceNotDeductible}
             />
           </dl>
         </Card>
@@ -318,18 +250,33 @@ export default function SummaryPage() {
   );
 }
 
+function LineItemRow({ item }: { item: LineItem }) {
+  const isResult = item.label.includes("Refund") || item.label.includes("Owed");
+  return (
+    <div className={`flex justify-between items-baseline ${isResult ? "border-t border-gray-200 pt-3" : ""}`}>
+      <dt className={`text-sm ${isResult ? "font-medium text-gray-900" : "text-gray-600"}`}>
+        {item.label}
+        {item.citation && <CitationTooltip citation={item.citation} />}
+      </dt>
+      <dd className={`text-sm font-mono ${isResult ? "font-semibold text-gray-900" : "text-gray-700"}`}>
+        {formatCurrency(item.value)}
+      </dd>
+    </div>
+  );
+}
+
 function SummaryRow({
   label,
   value,
-  negative = false,
   highlight = false,
   sub = false,
+  citation,
 }: {
   label: string;
   value: number;
-  negative?: boolean;
   highlight?: boolean;
   sub?: boolean;
+  citation?: import("@/lib/tax/constants").Citation;
 }) {
   return (
     <div className="flex justify-between items-baseline">
@@ -337,11 +284,11 @@ function SummaryRow({
         className={`text-sm ${sub ? "text-gray-500 pl-2" : highlight ? "font-medium text-gray-900" : "text-gray-600"}`}
       >
         {label}
+        {citation && <CitationTooltip citation={citation} />}
       </dt>
       <dd
         className={`text-sm font-mono ${highlight ? "font-semibold text-gray-900" : "text-gray-700"}`}
       >
-        {negative ? "- " : ""}
         {formatCurrency(value)}
       </dd>
     </div>

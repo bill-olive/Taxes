@@ -30,8 +30,8 @@ export default function FilingStatusPage() {
             <p className="font-medium text-gray-900">Single</p>
             <p className="text-sm text-gray-600 mt-1">
               You are unmarried, divorced, or legally separated as of December
-              31 of the tax year. This gives you a standard deduction of $14,600
-              for 2024.
+              31 of the tax year. This gives you a standard deduction of $15,000
+              for 2025.
             </p>
           </div>
         </div>

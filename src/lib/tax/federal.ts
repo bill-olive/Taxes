@@ -1,5 +1,5 @@
-import { FEDERAL } from "./constants";
-import type { TaxInput, FederalResult, BracketBreakdown } from "./types";
+import { FEDERAL, CITATIONS } from "./constants";
+import type { TaxInput, FederalResult, BracketBreakdown, LineItem } from "./types";
 import { calculateDeductions } from "./deductions";
 import { calculateAllCredits } from "./credits";
 
@@ -26,7 +26,7 @@ function calculateBracketTax(taxableIncome: number): {
 
 export function calculateFederalTax(input: TaxInput): FederalResult {
   const grossIncome = input.wages;
-  const adjustedGrossIncome = grossIncome; // No adjustments for simple W-2 filer
+  const adjustedGrossIncome = grossIncome;
 
   const deduction = calculateDeductions(input);
   const deductionAmount =
@@ -54,6 +54,55 @@ export function calculateFederalTax(input: TaxInput): FederalResult {
   const totalWithheld = input.federalWithheld;
   const refundOrOwed = totalWithheld - taxAfterCredits;
 
+  // Build line items with citations
+  const lineItems: LineItem[] = [
+    {
+      label: "Gross Income (Line 1)",
+      value: grossIncome,
+    },
+    {
+      label: "Adjusted Gross Income (Line 11)",
+      value: adjustedGrossIncome,
+    },
+    {
+      label: `Deduction — ${deduction.recommendedMethod === "standard" ? "Standard" : "Itemized"}`,
+      value: deductionAmount,
+      citation:
+        deduction.recommendedMethod === "standard"
+          ? CITATIONS.federalStandardDeduction
+          : undefined,
+    },
+    {
+      label: "Taxable Income (Line 15)",
+      value: taxableIncome,
+      citation: CITATIONS.federalBrackets,
+    },
+    {
+      label: "Tax Before Credits",
+      value: taxBeforeCredits,
+      citation: CITATIONS.federalBrackets,
+    },
+    ...credits
+      .filter((c) => c.eligible)
+      .map((credit) => ({
+        label: credit.name,
+        value: credit.amount,
+        citation: credit.citation,
+      })),
+    {
+      label: "Tax After Credits",
+      value: taxAfterCredits,
+    },
+    {
+      label: "Federal Tax Withheld",
+      value: totalWithheld,
+    },
+    {
+      label: refundOrOwed >= 0 ? "Federal Refund" : "Federal Owed",
+      value: Math.abs(refundOrOwed),
+    },
+  ];
+
   return {
     grossIncome,
     adjustedGrossIncome,
@@ -66,5 +115,6 @@ export function calculateFederalTax(input: TaxInput): FederalResult {
     taxAfterCredits,
     totalWithheld,
     refundOrOwed: Math.round(refundOrOwed * 100) / 100,
+    lineItems,
   };
 }

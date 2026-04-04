@@ -1,4 +1,4 @@
-import { FEDERAL } from "./constants";
+import { FEDERAL, CITATIONS } from "./constants";
 import type { TaxInput, DeductionResult } from "./types";
 
 export function calculateItemizedDeductions(input: TaxInput): {
@@ -26,6 +26,21 @@ export function calculateDeductions(input: TaxInput): DeductionResult {
 
   const useItemized = itemized.total > standardDeduction + 100;
 
+  const citations: Record<string, typeof CITATIONS[string]> = {
+    standardDeduction: CITATIONS.federalStandardDeduction,
+    saltCap: CITATIONS.saltCap,
+  };
+
+  if (input.propertyTaxPaid > 0) {
+    citations.propertyTax = CITATIONS.propertyTaxDeduction;
+  }
+  if (input.mortgageInterest > 0) {
+    citations.mortgageInterest = CITATIONS.mortgageInterest;
+  }
+  if (input.charitableContributions > 0) {
+    citations.charitableContributions = CITATIONS.charitableContributions;
+  }
+
   return {
     standardDeduction,
     itemizedDeduction: itemized.total,
@@ -40,6 +55,7 @@ export function calculateDeductions(input: TaxInput): DeductionResult {
       : itemized.total > standardDeduction
         ? `Your itemized deductions (${fmt(itemized.total)}) are only slightly more than the standard deduction (${fmt(standardDeduction)}). We recommend the standard deduction for simplicity — the difference is minimal.`
         : `The standard deduction of ${fmt(standardDeduction)} gives you a larger deduction than itemizing (${fmt(itemized.total)}). This is the simpler and more beneficial option.`,
+    citations,
   };
 }
 

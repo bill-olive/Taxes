@@ -41,7 +41,7 @@ export default function EducationPage() {
     >
       <div className="space-y-3">
         <p className="text-sm font-medium text-gray-700">
-          Were you a full-time student in 2024?
+          Were you a full-time student in 2025?
         </p>
         <div className="flex gap-4">
           <label className="flex items-center gap-2 cursor-pointer">

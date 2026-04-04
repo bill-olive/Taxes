@@ -1,30 +1,9 @@
-import { GEORGIA } from "./constants";
-import type { TaxInput, GeorgiaResult, BracketBreakdown } from "./types";
-
-function calculateGABracketTax(taxableIncome: number): {
-  tax: number;
-  breakdown: BracketBreakdown[];
-} {
-  const brackets = GEORGIA.brackets;
-  const breakdown: BracketBreakdown[] = [];
-  let remaining = taxableIncome;
-  let totalTax = 0;
-
-  for (const bracket of brackets) {
-    if (remaining <= 0) break;
-    const taxableAtRate = Math.min(remaining, bracket.max - bracket.min);
-    const tax = Math.round(taxableAtRate * bracket.rate * 100) / 100;
-    breakdown.push({ rate: bracket.rate, taxableAtRate, tax });
-    totalTax += tax;
-    remaining -= taxableAtRate;
-  }
-
-  return { tax: Math.round(totalTax * 100) / 100, breakdown };
-}
+import { GEORGIA, CITATIONS } from "./constants";
+import type { TaxInput, GeorgiaResult, LineItem } from "./types";
 
 export function calculateGeorgiaTax(input: TaxInput): GeorgiaResult {
   const federalAGI = input.wages;
-  const georgiaAdjustments = 0; // No adjustments for simple filer
+  const georgiaAdjustments = 0;
   const georgiaAGI = federalAGI + georgiaAdjustments;
 
   const standardDeduction = GEORGIA.standardDeduction.single;
@@ -35,11 +14,55 @@ export function calculateGeorgiaTax(input: TaxInput): GeorgiaResult {
     georgiaAGI - standardDeduction - personalExemption
   );
 
-  const { tax: georgiaTax, breakdown: bracketBreakdown } =
-    calculateGABracketTax(georgiaTaxableIncome);
+  // 2025: Flat tax rate under HB 1015
+  const georgiaTax = Math.round(georgiaTaxableIncome * GEORGIA.flatRate * 100) / 100;
+
+  // Single bracket breakdown for display consistency
+  const bracketBreakdown = georgiaTaxableIncome > 0
+    ? [{ rate: GEORGIA.flatRate, taxableAtRate: georgiaTaxableIncome, tax: georgiaTax }]
+    : [];
 
   const stateWithheld = input.stateWithheld;
   const refundOrOwed = stateWithheld - georgiaTax;
+
+  // Build line items with citations
+  const lineItems: LineItem[] = [
+    {
+      label: "Federal AGI",
+      value: federalAGI,
+    },
+    {
+      label: "Georgia AGI",
+      value: georgiaAGI,
+    },
+    {
+      label: "GA Standard Deduction",
+      value: standardDeduction,
+      citation: CITATIONS.georgiaStandardDeduction,
+    },
+    {
+      label: "GA Personal Exemption",
+      value: personalExemption,
+      citation: CITATIONS.georgiaPersonalExemption,
+    },
+    {
+      label: "Georgia Taxable Income",
+      value: georgiaTaxableIncome,
+    },
+    {
+      label: `Georgia Tax (${(GEORGIA.flatRate * 100).toFixed(2)}% flat rate)`,
+      value: georgiaTax,
+      citation: CITATIONS.georgiaFlatTax,
+    },
+    {
+      label: "State Tax Withheld",
+      value: stateWithheld,
+    },
+    {
+      label: refundOrOwed >= 0 ? "State Refund" : "State Owed",
+      value: Math.abs(refundOrOwed),
+    },
+  ];
 
   return {
     federalAGI,
@@ -52,5 +75,6 @@ export function calculateGeorgiaTax(input: TaxInput): GeorgiaResult {
     georgiaTax,
     stateWithheld,
     refundOrOwed: Math.round(refundOrOwed * 100) / 100,
+    lineItems,
   };
 }

@@ -1,3 +1,5 @@
+import type { Citation } from "./constants";
+
 export interface TaxInput {
   filingStatus: "single";
   wages: number;
@@ -27,6 +29,7 @@ export interface DeductionResult {
     charitableContributions: number;
   };
   explanation: string;
+  citations: Record<string, Citation>;
 }
 
 export interface CreditResult {
@@ -36,6 +39,13 @@ export interface CreditResult {
   refundableAmount: number;
   nonRefundableAmount: number;
   explanation: string;
+  citation: Citation;
+}
+
+export interface LineItem {
+  label: string;
+  value: number;
+  citation?: Citation;
 }
 
 export interface FederalResult {
@@ -50,6 +60,7 @@ export interface FederalResult {
   taxAfterCredits: number;
   totalWithheld: number;
   refundOrOwed: number;
+  lineItems: LineItem[];
 }
 
 export interface GeorgiaResult {
@@ -63,6 +74,7 @@ export interface GeorgiaResult {
   georgiaTax: number;
   stateWithheld: number;
   refundOrOwed: number;
+  lineItems: LineItem[];
 }
 
 export interface Recommendation {

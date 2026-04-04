@@ -38,7 +38,7 @@ export default function ResidencyPage() {
               Full-year Georgia resident
             </p>
             <p className="text-sm text-gray-600 mt-1">
-              I lived in Georgia for the entire 2024 tax year.
+              I lived in Georgia for the entire 2025 tax year.
             </p>
           </div>
         </label>
@@ -56,7 +56,7 @@ export default function ResidencyPage() {
               Part-year Georgia resident
             </p>
             <p className="text-sm text-gray-600 mt-1">
-              I moved to or from Georgia during 2024.
+              I moved to or from Georgia during 2025.
             </p>
           </div>
         </label>
