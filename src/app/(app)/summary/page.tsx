@@ -280,8 +280,8 @@ export default function SummaryPage() {
           <Button variant="secondary" onClick={calculateTaxes}>
             Recalculate
           </Button>
-          <Button onClick={() => router.push("/handoff")}>
-            Ready to File
+          <Button onClick={() => router.push("/efile")}>
+            E-File Your Return
           </Button>
         </div>
       </div>

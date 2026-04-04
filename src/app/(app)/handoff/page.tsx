@@ -65,6 +65,22 @@ export default function HandoffPage() {
         </ul>
       </Card>
 
+      <Card variant="success">
+        <CardTitle>Copy &amp; Paste into Free File Fillable Forms</CardTitle>
+        <CardDescription>
+          We&apos;ve prepared all your values mapped to Form 1040 lines — just copy and paste
+        </CardDescription>
+        <div className="mt-4 space-y-3">
+          <p className="text-sm text-gray-600">
+            Open our E-File helper to see every value you need, with a Copy
+            button next to each. Then paste into Free File Fillable Forms.
+          </p>
+          <Button className="mt-2" onClick={() => router.push("/efile")}>
+            Open E-File Helper
+          </Button>
+        </div>
+      </Card>
+
       <Card>
         <CardTitle>Federal Return</CardTitle>
         <CardDescription>
