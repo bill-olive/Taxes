@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { signIn, signInWithGoogle, handleGoogleRedirect } from "@/lib/firebase/auth";
+import { signIn, signInWithGoogle } from "@/lib/firebase/auth";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -17,23 +17,11 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Redirect if already signed in
   useEffect(() => {
     if (!authLoading && user) {
       router.push("/dashboard");
     }
   }, [user, authLoading, router]);
-
-  // Handle Google redirect result
-  useEffect(() => {
-    handleGoogleRedirect()
-      .then((user) => {
-        if (user) router.push("/dashboard");
-      })
-      .catch(() => {
-        // No redirect result — normal page load
-      });
-  }, [router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -53,7 +41,7 @@ export default function LoginPage() {
     setError("");
     try {
       await signInWithGoogle();
-      // Page will redirect to Google, then back
+      router.push("/dashboard");
     } catch {
       setError("Google sign-in failed. Please try again.");
     }
@@ -131,10 +119,7 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-4 text-center text-sm text-gray-600">
-            <Link
-              href="/reset-password"
-              className="text-blue-600 hover:underline"
-            >
+            <Link href="/reset-password" className="text-blue-600 hover:underline">
               Forgot password?
             </Link>
             <span className="mx-2">·</span>

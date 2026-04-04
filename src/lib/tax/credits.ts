@@ -4,6 +4,8 @@ import type { TaxInput, CreditResult } from "./types";
 export function calculateAOTC(input: TaxInput): CreditResult {
   const { aotc } = FEDERAL;
   const citation = CITATIONS.aotcCredit;
+  const phaseoutStart = aotc.incomePhaseoutStart[input.filingStatus];
+  const phaseoutEnd = aotc.incomePhaseoutEnd[input.filingStatus];
 
   if (!input.isFullTimeStudent || input.tuitionPaid <= 0) {
     return {
@@ -19,14 +21,14 @@ export function calculateAOTC(input: TaxInput): CreditResult {
     };
   }
 
-  if (input.wages > aotc.incomePhaseoutEnd) {
+  if (input.wages > phaseoutEnd) {
     return {
       name: "American Opportunity Tax Credit",
       eligible: false,
       amount: 0,
       refundableAmount: 0,
       nonRefundableAmount: 0,
-      explanation: `Your income exceeds the $${aotc.incomePhaseoutEnd.toLocaleString()} phase-out limit for this credit.`,
+      explanation: `Your income exceeds the $${phaseoutEnd.toLocaleString()} phase-out limit for this credit.`,
       citation,
     };
   }
@@ -41,9 +43,9 @@ export function calculateAOTC(input: TaxInput): CreditResult {
   credit = Math.min(credit, aotc.maxCredit);
 
   // Apply phase-out if income is in the phase-out range
-  if (input.wages > aotc.incomePhaseoutStart) {
-    const phaseoutRange = aotc.incomePhaseoutEnd - aotc.incomePhaseoutStart;
-    const overAmount = input.wages - aotc.incomePhaseoutStart;
+  if (input.wages > phaseoutStart) {
+    const phaseoutRange = phaseoutEnd - phaseoutStart;
+    const overAmount = input.wages - phaseoutStart;
     const reductionRate = overAmount / phaseoutRange;
     credit = credit * (1 - reductionRate);
   }

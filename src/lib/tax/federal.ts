@@ -3,11 +3,14 @@ import type { TaxInput, FederalResult, BracketBreakdown, LineItem } from "./type
 import { calculateDeductions } from "./deductions";
 import { calculateAllCredits } from "./credits";
 
-function calculateBracketTax(taxableIncome: number): {
+function calculateBracketTax(
+  taxableIncome: number,
+  filingStatus: TaxInput["filingStatus"]
+): {
   tax: number;
   breakdown: BracketBreakdown[];
 } {
-  const brackets = FEDERAL.brackets.single;
+  const brackets = FEDERAL.brackets[filingStatus];
   const breakdown: BracketBreakdown[] = [];
   let remaining = taxableIncome;
   let totalTax = 0;
@@ -36,7 +39,7 @@ export function calculateFederalTax(input: TaxInput): FederalResult {
 
   const taxableIncome = Math.max(0, adjustedGrossIncome - deductionAmount);
   const { tax: taxBeforeCredits, breakdown: bracketBreakdown } =
-    calculateBracketTax(taxableIncome);
+    calculateBracketTax(taxableIncome, input.filingStatus);
 
   const credits = calculateAllCredits(input);
   const nonRefundableCredits = credits.reduce(
@@ -54,16 +57,9 @@ export function calculateFederalTax(input: TaxInput): FederalResult {
   const totalWithheld = input.federalWithheld;
   const refundOrOwed = totalWithheld - taxAfterCredits;
 
-  // Build line items with citations
   const lineItems: LineItem[] = [
-    {
-      label: "Gross Income (Line 1)",
-      value: grossIncome,
-    },
-    {
-      label: "Adjusted Gross Income (Line 11)",
-      value: adjustedGrossIncome,
-    },
+    { label: "Gross Income (Line 1)", value: grossIncome },
+    { label: "Adjusted Gross Income (Line 11)", value: adjustedGrossIncome },
     {
       label: `Deduction — ${deduction.recommendedMethod === "standard" ? "Standard" : "Itemized"}`,
       value: deductionAmount,
@@ -89,14 +85,8 @@ export function calculateFederalTax(input: TaxInput): FederalResult {
         value: credit.amount,
         citation: credit.citation,
       })),
-    {
-      label: "Tax After Credits",
-      value: taxAfterCredits,
-    },
-    {
-      label: "Federal Tax Withheld",
-      value: totalWithheld,
-    },
+    { label: "Tax After Credits", value: taxAfterCredits },
+    { label: "Federal Tax Withheld", value: totalWithheld },
     {
       label: refundOrOwed >= 0 ? "Federal Refund" : "Federal Owed",
       value: Math.abs(refundOrOwed),

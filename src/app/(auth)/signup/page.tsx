@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { signUp, signInWithGoogle, handleGoogleRedirect } from "@/lib/firebase/auth";
+import { signUp, signInWithGoogle } from "@/lib/firebase/auth";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -23,14 +23,6 @@ export default function SignupPage() {
       router.push("/dashboard");
     }
   }, [user, authLoading, router]);
-
-  useEffect(() => {
-    handleGoogleRedirect()
-      .then((user) => {
-        if (user) router.push("/dashboard");
-      })
-      .catch(() => {});
-  }, [router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -60,6 +52,7 @@ export default function SignupPage() {
     setError("");
     try {
       await signInWithGoogle();
+      router.push("/dashboard");
     } catch {
       setError("Google sign-in failed. Please try again.");
     }

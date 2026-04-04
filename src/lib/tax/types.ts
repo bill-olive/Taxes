@@ -1,7 +1,7 @@
 import type { Citation } from "./constants";
 
 export interface TaxInput {
-  filingStatus: "single";
+  filingStatus: import("@/types").FilingStatus;
   wages: number;
   federalWithheld: number;
   stateWithheld: number;

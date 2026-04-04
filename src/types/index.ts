@@ -57,13 +57,28 @@ export interface DocumentMeta {
   uploadedAt: string;
 }
 
+export type FilingStatus =
+  | "single"
+  | "married_filing_jointly"
+  | "married_filing_separately"
+  | "head_of_household"
+  | "qualifying_surviving_spouse";
+
+export const FILING_STATUS_LABELS: Record<FilingStatus, string> = {
+  single: "Single",
+  married_filing_jointly: "Married Filing Jointly",
+  married_filing_separately: "Married Filing Separately",
+  head_of_household: "Head of Household",
+  qualifying_surviving_spouse: "Qualifying Surviving Spouse",
+};
+
 export interface TaxReturn {
   status: "in_progress" | "completed";
   currentStep: number;
   createdAt: string;
   updatedAt: string;
   personalInfo: PersonalInfo;
-  filingStatus: "single";
+  filingStatus: FilingStatus;
   residency: Residency;
   w2s: W2Entry[];
   education: Education;

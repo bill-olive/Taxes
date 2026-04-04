@@ -114,7 +114,7 @@ export function taxReturnToInput(
   );
 
   return {
-    filingStatus: "single",
+    filingStatus: taxReturn.filingStatus,
     wages: totalWages,
     federalWithheld: totalFedWithheld,
     stateWithheld: totalStateWithheld,

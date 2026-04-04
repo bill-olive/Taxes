@@ -6,8 +6,8 @@ export function calculateGeorgiaTax(input: TaxInput): GeorgiaResult {
   const georgiaAdjustments = 0;
   const georgiaAGI = federalAGI + georgiaAdjustments;
 
-  const standardDeduction = GEORGIA.standardDeduction.single;
-  const personalExemption = GEORGIA.personalExemption;
+  const standardDeduction = GEORGIA.standardDeduction[input.filingStatus];
+  const personalExemption = GEORGIA.personalExemption[input.filingStatus];
 
   const georgiaTaxableIncome = Math.max(
     0,
@@ -17,7 +17,6 @@ export function calculateGeorgiaTax(input: TaxInput): GeorgiaResult {
   // 2025: Flat tax rate under HB 1015
   const georgiaTax = Math.round(georgiaTaxableIncome * GEORGIA.flatRate * 100) / 100;
 
-  // Single bracket breakdown for display consistency
   const bracketBreakdown = georgiaTaxableIncome > 0
     ? [{ rate: GEORGIA.flatRate, taxableAtRate: georgiaTaxableIncome, tax: georgiaTax }]
     : [];
@@ -25,16 +24,9 @@ export function calculateGeorgiaTax(input: TaxInput): GeorgiaResult {
   const stateWithheld = input.stateWithheld;
   const refundOrOwed = stateWithheld - georgiaTax;
 
-  // Build line items with citations
   const lineItems: LineItem[] = [
-    {
-      label: "Federal AGI",
-      value: federalAGI,
-    },
-    {
-      label: "Georgia AGI",
-      value: georgiaAGI,
-    },
+    { label: "Federal AGI", value: federalAGI },
+    { label: "Georgia AGI", value: georgiaAGI },
     {
       label: "GA Standard Deduction",
       value: standardDeduction,
@@ -45,19 +37,13 @@ export function calculateGeorgiaTax(input: TaxInput): GeorgiaResult {
       value: personalExemption,
       citation: CITATIONS.georgiaPersonalExemption,
     },
-    {
-      label: "Georgia Taxable Income",
-      value: georgiaTaxableIncome,
-    },
+    { label: "Georgia Taxable Income", value: georgiaTaxableIncome },
     {
       label: `Georgia Tax (${(GEORGIA.flatRate * 100).toFixed(2)}% flat rate)`,
       value: georgiaTax,
       citation: CITATIONS.georgiaFlatTax,
     },
-    {
-      label: "State Tax Withheld",
-      value: stateWithheld,
-    },
+    { label: "State Tax Withheld", value: stateWithheld },
     {
       label: refundOrOwed >= 0 ? "State Refund" : "State Owed",
       value: Math.abs(refundOrOwed),

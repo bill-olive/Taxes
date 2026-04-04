@@ -21,7 +21,7 @@ export function calculateItemizedDeductions(input: TaxInput): {
 }
 
 export function calculateDeductions(input: TaxInput): DeductionResult {
-  const standardDeduction = FEDERAL.standardDeduction.single;
+  const standardDeduction = FEDERAL.standardDeduction[input.filingStatus];
   const itemized = calculateItemizedDeductions(input);
 
   const useItemized = itemized.total > standardDeduction + 100;
