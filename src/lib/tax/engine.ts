@@ -192,5 +192,25 @@ export function taxReturnToInput(
     charitableContributions:
       taxReturn.additionalDeductions.charitableContributions,
     stateIncomeTaxPaid: totalStateWithheld,
+    // Dependents
+    numChildrenUnder17: countChildrenUnder17(taxReturn.dependents ?? []),
+    numOtherDependents: countOtherDependents(taxReturn.dependents ?? []),
+    childcareExpenses: taxReturn.childcareExpenses ?? 0,
   };
+}
+
+function countChildrenUnder17(dependents: import("@/types").Dependent[]): number {
+  const cutoff = new Date(2025 - 17, 0, 2); // Born after Jan 1, 2009 = under 17 at end of 2025
+  return dependents.filter((d) => {
+    if (!d.dob) return false;
+    return new Date(d.dob) > cutoff;
+  }).length;
+}
+
+function countOtherDependents(dependents: import("@/types").Dependent[]): number {
+  const cutoff = new Date(2025 - 17, 0, 2);
+  return dependents.filter((d) => {
+    if (!d.dob) return true; // If no DOB, assume other dependent
+    return new Date(d.dob) <= cutoff;
+  }).length;
 }

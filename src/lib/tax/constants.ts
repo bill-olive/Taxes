@@ -68,6 +68,27 @@ export const CITATIONS: Record<string, Citation> = {
     url: "https://dor.georgia.gov/income-tax",
     note: "Not eliminated by HB 1015 for 2025.",
   },
+  childTaxCredit: {
+    rule: "Child Tax Credit",
+    source: "IRC § 24",
+    section: "Tax Cuts and Jobs Act of 2017",
+    url: "https://www.irs.gov/credits-deductions/individuals/child-tax-credit",
+    note: "$2,000 per qualifying child under 17. Up to $1,700 refundable (Additional Child Tax Credit) for 2025. Phase-out begins at $200,000 ($400,000 MFJ).",
+  },
+  otherDependentCredit: {
+    rule: "Credit for Other Dependents",
+    source: "IRC § 24(h)(4)",
+    section: "Tax Cuts and Jobs Act of 2017",
+    url: "https://www.irs.gov/credits-deductions/individuals/child-tax-credit",
+    note: "$500 non-refundable credit for dependents who don't qualify for CTC (age 17+, elderly parents, etc.).",
+  },
+  childDependentCareCredit: {
+    rule: "Child and Dependent Care Credit",
+    source: "IRC § 21",
+    section: "Form 2441",
+    url: "https://www.irs.gov/forms-pubs/about-form-2441",
+    note: "20-35% of up to $3,000 in care expenses for one qualifying individual, $6,000 for two or more. Non-refundable.",
+  },
   propertyTaxDeduction: {
     rule: "Property Tax Deduction",
     source: "IRC § 164(a)(1) and IRC § 164(b)(6)",
@@ -211,6 +232,32 @@ export const FEDERAL = {
       head_of_household: 90000,
       qualifying_surviving_spouse: 180000,
     },
+  },
+  // Child Tax Credit — IRC § 24
+  ctc: {
+    creditPerChild: 2000,
+    refundableMax: 1700, // Additional Child Tax Credit refundable portion for 2025
+    earnedIncomeThreshold: 2500, // Must earn above this for refundable portion
+    refundableRate: 0.15, // 15% of earned income above threshold
+    incomePhaseoutStart: {
+      single: 200000,
+      married_filing_jointly: 400000,
+      married_filing_separately: 200000,
+      head_of_household: 200000,
+      qualifying_surviving_spouse: 400000,
+    },
+    phaseoutRate: 50, // $50 reduction per $1,000 over threshold
+    maxChildAge: 17, // Must be under 17 at end of tax year
+    otherDependentCredit: 500, // Credit for dependents 17+ (non-refundable)
+  },
+  // Child and Dependent Care Credit — IRC § 21
+  cdcc: {
+    maxExpensesOneChild: 3000,
+    maxExpensesTwoPlus: 6000,
+    maxCreditRate: 0.35, // 35% for AGI up to $15,000
+    minCreditRate: 0.20, // 20% for AGI over $43,000
+    rateReductionStart: 15000,
+    rateReductionPerStep: 2000, // Rate drops 1% for every $2,000 above $15,000
   },
 } as const;
 

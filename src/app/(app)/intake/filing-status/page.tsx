@@ -64,6 +64,9 @@ export default function FilingStatusPage() {
   const [dependents, setDependents] = useState<Dependent[]>(
     taxReturn.dependents?.length > 0 ? taxReturn.dependents : []
   );
+  const [childcareExpenses, setChildcareExpenses] = useState(
+    taxReturn.childcareExpenses ?? 0
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const showDependents = NEEDS_DEPENDENTS.includes(selected);
@@ -103,6 +106,7 @@ export default function FilingStatusPage() {
     if (!validate()) return;
     await updateSection("filingStatus", selected);
     await updateSection("dependents", showDependents ? dependents : []);
+    await updateSection("childcareExpenses", showDependents ? childcareExpenses : 0);
     await updateSection("currentStep", 2);
     router.push("/intake/residency");
   }
@@ -252,12 +256,56 @@ export default function FilingStatusPage() {
           </Button>
 
           {dependents.length > 0 && (
-            <div className="rounded-lg bg-blue-50 border border-blue-100 px-4 py-3 text-sm text-blue-800">
-              <strong>Note:</strong> Each qualifying dependent under age 17 may
-              entitle you to a Child Tax Credit of up to $2,000. Dependents
-              must have a valid SSN and have lived with you for more than half
-              the year.
-            </div>
+            <>
+              {/* Childcare expenses */}
+              <Card className="space-y-3">
+                <CardTitle className="text-base">
+                  Childcare & Dependent Care Expenses
+                </CardTitle>
+                <Input
+                  label="Total care expenses paid in 2025"
+                  type="number"
+                  value={childcareExpenses || ""}
+                  onChange={(e) =>
+                    setChildcareExpenses(parseFloat(e.target.value) || 0)
+                  }
+                  helpText="Daycare, after-school care, babysitter, or caretaker expenses paid so you (and your spouse) could work or look for work. Does NOT include overnight camps."
+                  placeholder="0"
+                />
+                {childcareExpenses > 0 && (
+                  <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+                    <strong>Child and Dependent Care Credit:</strong> You may
+                    qualify for a credit of 20-35% of up to $
+                    {dependents.length >= 2 ? "6,000" : "3,000"} in qualifying
+                    expenses (Form 2441).
+                  </div>
+                )}
+              </Card>
+
+              <div className="rounded-lg bg-blue-50 border border-blue-100 px-4 py-3 text-sm text-blue-800">
+                <strong>Tax credits for dependents:</strong>
+                <ul className="mt-2 space-y-1 list-disc pl-5">
+                  <li>
+                    <strong>Child Tax Credit:</strong> Up to $2,000 per qualifying
+                    child under 17 (up to $1,700 refundable). Phase-out begins at
+                    $200,000 ($400,000 MFJ).
+                  </li>
+                  <li>
+                    <strong>Other Dependent Credit:</strong> $500 non-refundable
+                    for dependents 17 and older (elderly parents, etc.).
+                  </li>
+                  <li>
+                    <strong>Child & Dependent Care Credit:</strong> 20-35% of
+                    qualifying care expenses (up to $3,000 for one, $6,000 for
+                    two+).
+                  </li>
+                </ul>
+                <p className="mt-2">
+                  Dependents must have a valid SSN and have lived with you for
+                  more than half the year.
+                </p>
+              </div>
+            </>
           )}
         </div>
       )}

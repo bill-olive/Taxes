@@ -168,6 +168,7 @@ export interface TaxReturn {
   personalInfo: PersonalInfo;
   filingStatus: FilingStatus;
   dependents: Dependent[];
+  childcareExpenses: number;
   residency: Residency;
   w2s: W2Entry[];
   investmentIncome: InvestmentIncome;
@@ -207,6 +208,7 @@ export function getDefaultTaxReturn(): TaxReturn {
     },
     filingStatus: "single",
     dependents: [],
+    childcareExpenses: 0,
     residency: { state: "GA", fullYear: true },
     w2s: [],
     investmentIncome: {
