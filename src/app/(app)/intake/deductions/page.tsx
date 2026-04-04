@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { StepWrapper } from "@/components/intake/StepWrapper";
 import { Input } from "@/components/ui/Input";
 import { useTaxReturn } from "@/context/TaxReturnContext";
+import { DeductionChat } from "@/components/intake/DeductionChat";
 
 export default function DeductionsPage() {
   const router = useRouter();
@@ -15,6 +16,25 @@ export default function DeductionsPage() {
   const [other, setOther] = useState(d.otherDeductions);
   const [otherDesc, setOtherDesc] = useState(d.otherDescription);
   const [saving, setSaving] = useState(false);
+
+  // Build context from the full tax return for the AI chat
+  const chatContext = {
+    filingStatus: taxReturn.filingStatus,
+    state: taxReturn.residency?.state || "GA",
+    totalWages: taxReturn.w2s.reduce((s, w) => s + w.wages, 0),
+    healthInsurance: health,
+    charitable,
+    propertyTax: taxReturn.property.propertyTaxPaid,
+    mortgageInterest: taxReturn.property.mortgageInterest,
+    isStudent: taxReturn.education.isFullTimeStudent,
+    otherDeductions: other,
+    otherDescription: otherDesc,
+  };
+
+  function handleDeductionsFromChat(total: number, description: string) {
+    setOther(total);
+    setOtherDesc(description);
+  }
 
   async function handleNext() {
     setSaving(true);
@@ -56,23 +76,37 @@ export default function DeductionsPage() {
       />
 
       <div className="border-t border-gray-200 pt-4">
-        <Input
-          label="Other Deductible Expenses"
-          type="number"
-          value={other || ""}
-          onChange={(e) => setOther(parseFloat(e.target.value) || 0)}
-          helpText="Any other expenses you think might be deductible."
+        <h3 className="text-base font-semibold text-gray-900 mb-1">
+          Other Deductible Expenses
+        </h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Use our AI advisor to discover business deductions you might be
+          missing, or enter amounts manually below.
+        </p>
+
+        {/* AI Deduction Chat */}
+        <DeductionChat
+          context={chatContext}
+          onDeductionsChange={handleDeductionsFromChat}
         />
-        {(other > 0 || otherDesc) && (
-          <div className="mt-3">
+
+        <div className="mt-4 space-y-3">
+          <Input
+            label="Total Other Deductible Expenses"
+            type="number"
+            value={other || ""}
+            onChange={(e) => setOther(parseFloat(e.target.value) || 0)}
+            helpText="This is auto-filled by the AI advisor, or you can enter/adjust manually."
+          />
+          {(other > 0 || otherDesc) && (
             <Input
               label="Description of Other Expenses"
               value={otherDesc}
               onChange={(e) => setOtherDesc(e.target.value)}
-              placeholder="e.g., unreimbursed educator expenses"
+              placeholder="e.g., home office, mileage, software subscriptions"
             />
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <div className="rounded-lg bg-blue-50 border border-blue-100 px-4 py-3 text-sm text-blue-800">
