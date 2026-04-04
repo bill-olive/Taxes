@@ -151,6 +151,42 @@ export default function SummaryPage() {
         </dl>
       </Card>
 
+      {/* Credits */}
+      {federal.credits && federal.credits.length > 0 && (
+        <Card variant={federal.credits.some((c) => c.eligible) ? "success" : "info"}>
+          <CardTitle>Tax Credits</CardTitle>
+          <CardDescription>
+            Credits reduce your tax dollar-for-dollar
+          </CardDescription>
+          <dl className="mt-4 space-y-3">
+            {federal.credits.map((credit, idx) => (
+              <div key={idx} className="space-y-1">
+                <div className="flex justify-between items-baseline">
+                  <dt className="text-sm font-medium text-gray-900">
+                    {credit.name}
+                    {credit.citation && (
+                      <CitationTooltip citation={credit.citation} />
+                    )}
+                  </dt>
+                  <dd className="text-sm font-mono font-semibold">
+                    {credit.eligible
+                      ? formatCurrency(credit.amount)
+                      : "Not eligible"}
+                  </dd>
+                </div>
+                <p className="text-xs text-gray-600">{credit.explanation}</p>
+                {credit.eligible && credit.refundableAmount > 0 && (
+                  <p className="text-xs text-green-700">
+                    {formatCurrency(credit.refundableAmount)} is refundable
+                    (you get this even if you owe $0 in taxes)
+                  </p>
+                )}
+              </div>
+            ))}
+          </dl>
+        </Card>
+      )}
+
       {/* State Summary — using lineItems with citations */}
       <Card>
         <CardTitle>

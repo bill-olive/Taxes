@@ -22,10 +22,47 @@ export interface Residency {
 export interface W2Entry {
   employerName: string;
   employerEIN: string;
+  employerAddress: string;
+  // Box 1 - Wages, tips, other compensation
   wages: number;
+  // Box 2 - Federal income tax withheld
   federalWithheld: number;
+  // Box 3 - Social security wages
+  socialSecurityWages: number;
+  // Box 4 - Social security tax withheld
+  socialSecurityWithheld: number;
+  // Box 5 - Medicare wages and tips
+  medicareWages: number;
+  // Box 6 - Medicare tax withheld
+  medicareWithheld: number;
+  // Box 7 - Social security tips
+  socialSecurityTips: number;
+  // Box 8 - Allocated tips
+  allocatedTips: number;
+  // Box 10 - Dependent care benefits
+  dependentCareBenefits: number;
+  // Box 11 - Nonqualified plans
+  nonqualifiedPlans: number;
+  // Box 12a-12d - Codes and amounts (e.g., DD for health insurance)
+  box12: { code: string; amount: number }[];
+  // Box 13 - Checkboxes
+  isStatutoryEmployee: boolean;
+  retirementPlan: boolean;
+  thirdPartySickPay: boolean;
+  // Box 14 - Other
+  box14Other: string;
+  // Box 15 - State
+  state: string;
+  // Box 16 - State wages
   stateWages: number;
+  // Box 17 - State income tax withheld
   stateWithheld: number;
+  // Box 18 - Local wages
+  localWages: number;
+  // Box 19 - Local income tax
+  localWithheld: number;
+  // Box 20 - Locality name
+  localityName: string;
 }
 
 export interface Education {
