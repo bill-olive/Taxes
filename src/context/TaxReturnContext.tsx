@@ -53,7 +53,32 @@ export function TaxReturnProvider({ children }: { children: ReactNode }) {
     setError(null);
     try {
       const data = await getOrCreateTaxReturn(user.uid, taxYear);
-      setTaxReturn(data);
+      // Merge with defaults so new fields added to the schema are present
+      const defaults = getDefaultTaxReturn();
+      const merged: TaxReturn = {
+        ...defaults,
+        ...data,
+        // Ensure nested objects have all required fields
+        investmentIncome: {
+          ...defaults.investmentIncome,
+          ...(data.investmentIncome ?? {}),
+        },
+        additionalDeductions: {
+          ...defaults.additionalDeductions,
+          ...(data.additionalDeductions ?? {}),
+        },
+        personalInfo: {
+          ...defaults.personalInfo,
+          ...(data.personalInfo ?? {}),
+          address: {
+            ...defaults.personalInfo.address,
+            ...(data.personalInfo?.address ?? {}),
+          },
+        },
+        dependents: data.dependents ?? defaults.dependents,
+        childcareExpenses: data.childcareExpenses ?? defaults.childcareExpenses,
+      };
+      setTaxReturn(merged);
     } catch (err) {
       console.error("Failed to load tax return from Firestore:", err);
       setError(
