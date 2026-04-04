@@ -9,8 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardTitle } from "@/components/ui/Card";
 import { useTaxReturn } from "@/context/TaxReturnContext";
 import { useAuth } from "@/context/AuthContext";
-import { uploadDocument } from "@/lib/firebase/storage";
-import { getCurrentTaxYear, formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import type { W2Entry, DocumentMeta } from "@/types";
 
 const emptyW2: W2Entry = {
@@ -68,23 +67,7 @@ export default function W2IncomePage() {
       setParseSuccess("");
 
       try {
-        // Upload to storage first
-        const { storagePath } = await uploadDocument(
-          user.uid,
-          getCurrentTaxYear(),
-          file
-        );
-
-        // Save document metadata
-        const newDoc: DocumentMeta = {
-          fileName: file.name,
-          type: "w2",
-          storagePath,
-          uploadedAt: new Date().toISOString(),
-        };
-        await updateSection("documents", [...taxReturn.documents, newDoc]);
-
-        // Send to LLM for parsing
+        // Send to our API route for parsing (avoids Firebase Storage CORS issues)
         const formData = new FormData();
         formData.append("file", file);
 
@@ -99,6 +82,15 @@ export default function W2IncomePage() {
         }
 
         const { data } = await resp.json();
+
+        // Save document metadata to Firestore
+        const newDoc: DocumentMeta = {
+          fileName: file.name,
+          type: "w2",
+          storagePath: `w2-uploads/${Date.now()}_${file.name}`,
+          uploadedAt: new Date().toISOString(),
+        };
+        await updateSection("documents", [...taxReturn.documents, newDoc]);
 
         // Add parsed W-2 data
         const newW2: W2Entry = {
@@ -124,13 +116,13 @@ export default function W2IncomePage() {
         });
 
         setParseSuccess(
-          `Imported W-2 from ${data.employerName || "your employer"}. Document saved. Please verify the numbers below.`
+          `Imported W-2 from ${data.employerName || "your employer"}. Please verify the numbers below.`
         );
       } catch (err) {
         setParseError(
           err instanceof Error
             ? err.message
-            : "Failed to parse W-2 image. You can enter the data manually."
+            : "Failed to parse W-2. You can enter the data manually below."
         );
       } finally {
         setParsing(false);
