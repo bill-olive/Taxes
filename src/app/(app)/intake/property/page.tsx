@@ -27,7 +27,7 @@ export default function PropertyPage() {
       hoaDues: hasProperty ? hoa : 0,
       insuranceCost: hasProperty ? insurance : 0,
     });
-    await updateSection("currentStep", 7);
+    await updateSection("currentStep", 8);
     setSaving(false);
     router.push("/intake/deductions");
   }

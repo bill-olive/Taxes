@@ -63,6 +63,10 @@ export function TaxReturnProvider({ children }: { children: ReactNode }) {
           ...defaults.investmentIncome,
           ...(data.investmentIncome ?? {}),
         },
+        iraContributions: {
+          ...defaults.iraContributions,
+          ...(data.iraContributions ?? {}),
+        },
         additionalDeductions: {
           ...defaults.additionalDeductions,
           ...(data.additionalDeductions ?? {}),

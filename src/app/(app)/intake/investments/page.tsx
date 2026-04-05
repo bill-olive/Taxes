@@ -176,7 +176,7 @@ export default function InvestmentsPage() {
     });
     await updateSection("currentStep", 5);
     setSaving(false);
-    router.push("/intake/education");
+    router.push("/intake/retirement");
   }
 
   const totalInterest = ints.reduce((s, i) => s + i.interestIncome, 0);

@@ -25,7 +25,7 @@ export default function EducationPage() {
       institutionName: institution,
       tuitionPaid: tuition,
     });
-    await updateSection("currentStep", 6);
+    await updateSection("currentStep", 7);
     setSaving(false);
     router.push("/intake/property");
   }
@@ -36,7 +36,7 @@ export default function EducationPage() {
       description="Tell us about your education. This helps us check if you qualify for valuable education tax credits."
       helpText="Full-time students may qualify for the American Opportunity Tax Credit (AOTC), worth up to $2,500. This is one of the most valuable credits available!"
       onNext={handleNext}
-      onBack={() => router.push("/intake/investments")}
+      onBack={() => router.push("/intake/retirement")}
       isSubmitting={saving}
     >
       <div className="space-y-3">

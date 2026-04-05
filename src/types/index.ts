@@ -131,6 +131,18 @@ export interface Property {
   insuranceCost: number;
 }
 
+export interface IRAContributions {
+  hasTraditionalIRA: boolean;
+  traditionalContribution: number;
+  hasRothIRA: boolean;
+  rothContribution: number;
+  providerName: string;
+  /** Is the filer (or spouse) covered by an employer retirement plan? (W-2 Box 13) */
+  coveredByEmployerPlan: boolean;
+  /** Is the filer age 50 or older by end of tax year? */
+  age50OrOlder: boolean;
+}
+
 export interface AdditionalDeductions {
   healthInsurancePremiums: number;
   charitableContributions: number;
@@ -172,6 +184,7 @@ export interface TaxReturn {
   residency: Residency;
   w2s: W2Entry[];
   investmentIncome: InvestmentIncome;
+  iraContributions: IRAContributions;
   education: Education;
   property: Property;
   additionalDeductions: AdditionalDeductions;
@@ -185,6 +198,7 @@ export const INTAKE_STEPS = [
   { id: "residency", label: "Residency" },
   { id: "w2-income", label: "W-2 Income" },
   { id: "investments", label: "Investments" },
+  { id: "retirement", label: "Retirement (IRA)" },
   { id: "education", label: "Education" },
   { id: "property", label: "Property" },
   { id: "deductions", label: "Deductions" },
@@ -215,6 +229,15 @@ export function getDefaultTaxReturn(): TaxReturn {
       form1099INTs: [],
       form1099DIVs: [],
       form1099Bs: [],
+    },
+    iraContributions: {
+      hasTraditionalIRA: false,
+      traditionalContribution: 0,
+      hasRothIRA: false,
+      rothContribution: 0,
+      providerName: "",
+      coveredByEmployerPlan: false,
+      age50OrOlder: false,
     },
     education: { isFullTimeStudent: false, institutionName: "", tuitionPaid: 0 },
     property: {

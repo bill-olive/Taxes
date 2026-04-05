@@ -89,6 +89,13 @@ export const CITATIONS: Record<string, Citation> = {
     url: "https://www.irs.gov/forms-pubs/about-form-2441",
     note: "20-35% of up to $3,000 in care expenses for one qualifying individual, $6,000 for two or more. Non-refundable.",
   },
+  iraDeduction: {
+    rule: "IRA Deduction",
+    source: "IRC § 219",
+    section: "Schedule 1, Part II, Line 20",
+    url: "https://www.irs.gov/retirement-plans/ira-deduction-limits",
+    note: "Traditional IRA contributions may be deductible as an above-the-line adjustment to income. Limit: $7,000 ($8,000 if age 50+). Deductibility may be reduced if covered by an employer retirement plan above certain AGI thresholds.",
+  },
   propertyTaxDeduction: {
     rule: "Property Tax Deduction",
     source: "IRC § 164(a)(1) and IRC § 164(b)(6)",
@@ -249,6 +256,31 @@ export const FEDERAL = {
     phaseoutRate: 50, // $50 reduction per $1,000 over threshold
     maxChildAge: 17, // Must be under 17 at end of tax year
     otherDependentCredit: 500, // Credit for dependents 17+ (non-refundable)
+  },
+  // IRA Contribution Limits — IRC § 219 (2025)
+  ira: {
+    maxContribution: 7000,
+    catchUpContribution: 1000, // Additional if age 50+
+    // Deduction phaseout for filers COVERED by employer plan
+    deductionPhaseout_covered: {
+      single: { start: 79000, end: 89000 },
+      married_filing_jointly: { start: 126000, end: 146000 },
+      married_filing_separately: { start: 0, end: 10000 },
+      head_of_household: { start: 79000, end: 89000 },
+      qualifying_surviving_spouse: { start: 126000, end: 146000 },
+    },
+    // Phaseout for filer NOT covered, but spouse IS covered (MFJ only)
+    deductionPhaseout_spouseCovered: {
+      married_filing_jointly: { start: 236000, end: 246000 },
+    },
+    // Roth IRA income limits (for informational display)
+    rothPhaseout: {
+      single: { start: 150000, end: 165000 },
+      married_filing_jointly: { start: 236000, end: 246000 },
+      married_filing_separately: { start: 0, end: 10000 },
+      head_of_household: { start: 150000, end: 165000 },
+      qualifying_surviving_spouse: { start: 236000, end: 246000 },
+    },
   },
   // Child and Dependent Care Credit — IRC § 21
   cdcc: {

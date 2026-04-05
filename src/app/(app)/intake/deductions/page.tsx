@@ -44,7 +44,7 @@ export default function DeductionsPage() {
       otherDeductions: other,
       otherDescription: otherDesc,
     });
-    await updateSection("currentStep", 8);
+    await updateSection("currentStep", 9);
     setSaving(false);
     router.push("/documents");
   }

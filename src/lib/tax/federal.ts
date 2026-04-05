@@ -36,7 +36,8 @@ export function calculateFederalTax(input: TaxInput): FederalResult {
     (input.interestIncome || 0) +
     (input.ordinaryDividends || 0) +
     Math.max(0, netCapitalGainLoss);
-  const adjustedGrossIncome = grossIncome;
+  const aboveTheLineDeductions = input.iraDeduction || 0;
+  const adjustedGrossIncome = grossIncome - aboveTheLineDeductions;
 
   const deduction = calculateDeductions(input);
   const deductionAmount =
@@ -78,6 +79,19 @@ export function calculateFederalTax(input: TaxInput): FederalResult {
     });
   lineItems.push(
     { label: "Total Income (Line 9)", value: grossIncome },
+  );
+  if (aboveTheLineDeductions > 0) {
+    lineItems.push({
+      label: "IRA Deduction (Schedule 1, Line 20)",
+      value: aboveTheLineDeductions,
+      citation: CITATIONS.iraDeduction,
+    });
+    lineItems.push({
+      label: "Total Adjustments (Line 10)",
+      value: aboveTheLineDeductions,
+    });
+  }
+  lineItems.push(
     { label: "Adjusted Gross Income (Line 11)", value: adjustedGrossIncome },
     {
       label: `Deduction — ${deduction.recommendedMethod === "standard" ? "Standard" : "Itemized"}`,

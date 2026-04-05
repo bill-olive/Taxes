@@ -16,6 +16,8 @@ export interface TaxInput {
   mortgageInterest: number;
   charitableContributions: number;
   stateIncomeTaxPaid: number;
+  // IRA (above-the-line deduction)
+  iraDeduction: number;
   // Dependent/child info
   numChildrenUnder17: number;
   numOtherDependents: number;

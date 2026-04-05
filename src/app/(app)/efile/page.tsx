@@ -120,19 +120,40 @@ function buildForm1040Fields(
     );
   }
 
-  fields.push(
-    {
-      line: "9",
-      label: "Total income",
-      value: fmt(federal.grossIncome),
-      raw: federal.grossIncome,
-    },
-    {
-      line: "11",
-      label: "Adjusted gross income (AGI)",
-      value: fmt(federal.adjustedGrossIncome),
-      raw: federal.adjustedGrossIncome,
-    },
+  fields.push({
+    line: "9",
+    label: "Total income",
+    value: fmt(federal.grossIncome),
+    raw: federal.grossIncome,
+  });
+
+  // IRA deduction (above-the-line, Schedule 1 Line 20 → Form 1040 Line 10)
+  const iraDeductionLine = federal.lineItems.find((li) =>
+    li.label.includes("IRA Deduction")
+  );
+  if (iraDeductionLine && iraDeductionLine.value > 0) {
+    fields.push(
+      {
+        line: "S1-20",
+        label: "IRA deduction (Schedule 1, Line 20)",
+        value: fmt(iraDeductionLine.value),
+        raw: iraDeductionLine.value,
+      },
+      {
+        line: "10",
+        label: "Adjustments to income (Schedule 1, Line 26)",
+        value: fmt(iraDeductionLine.value),
+        raw: iraDeductionLine.value,
+      }
+    );
+  }
+
+  fields.push({
+    line: "11",
+    label: "Adjusted gross income (AGI)",
+    value: fmt(federal.adjustedGrossIncome),
+    raw: federal.adjustedGrossIncome,
+  },
     {
       line: "12",
       label: `${federal.deduction.recommendedMethod === "standard" ? "Standard" : "Itemized"} deduction`,

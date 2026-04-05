@@ -1,4 +1,4 @@
-import { TAX_YEAR } from "./constants";
+import { TAX_YEAR, FEDERAL } from "./constants";
 import type { TaxInput, TaxResult, StateResult, Recommendation } from "./types";
 import { calculateFederalTax } from "./federal";
 import { calculateGeorgiaTax } from "./georgia";
@@ -175,6 +175,50 @@ export function taxReturnToInput(
     inv.form1099DIVs.reduce((s, f) => s + f.federalWithheld, 0) +
     inv.form1099Bs.reduce((s, f) => s + f.federalWithheld, 0);
 
+  // IRA deduction calculation
+  const ira = taxReturn.iraContributions ?? {
+    hasTraditionalIRA: false,
+    traditionalContribution: 0,
+    coveredByEmployerPlan: false,
+    age50OrOlder: false,
+  };
+  let iraDeduction = 0;
+  if (ira.hasTraditionalIRA && ira.traditionalContribution > 0) {
+    const limit =
+      FEDERAL.ira.maxContribution +
+      (ira.age50OrOlder ? FEDERAL.ira.catchUpContribution : 0);
+    const contribution = Math.min(ira.traditionalContribution, limit);
+
+    // Check if employer plan coverage triggers a phaseout
+    const coveredByPlan =
+      ira.coveredByEmployerPlan ||
+      taxReturn.w2s.some((w) => w.retirementPlan);
+
+    if (coveredByPlan) {
+      const phaseout =
+        FEDERAL.ira.deductionPhaseout_covered[taxReturn.filingStatus];
+      // Estimate gross income for phaseout check (wages + investment)
+      const estGross =
+        totalWages +
+        interestIncome +
+        ordinaryDividends +
+        Math.max(0, totalCapitalGains - totalCapitalLosses);
+
+      if (estGross <= phaseout.start) {
+        iraDeduction = contribution;
+      } else if (estGross >= phaseout.end) {
+        iraDeduction = 0;
+      } else {
+        const ratio =
+          (phaseout.end - estGross) / (phaseout.end - phaseout.start);
+        iraDeduction = Math.round(contribution * ratio / 10) * 10; // IRS rounds to nearest $10
+      }
+    } else {
+      // Not covered by employer plan — full deduction
+      iraDeduction = contribution;
+    }
+  }
+
   return {
     filingStatus: taxReturn.filingStatus,
     wages: totalWages,
@@ -192,6 +236,7 @@ export function taxReturnToInput(
     charitableContributions:
       taxReturn.additionalDeductions.charitableContributions,
     stateIncomeTaxPaid: totalStateWithheld,
+    iraDeduction,
     // Dependents
     numChildrenUnder17: countChildrenUnder17(taxReturn.dependents ?? []),
     numOtherDependents: countOtherDependents(taxReturn.dependents ?? []),
